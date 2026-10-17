@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>物理基礎　熱　Web教材（タブレット）</title>
+<style>
+  :root { --blue: #1d4e89; --ink: #1c2430; --line: #c5ced8; --paper: #f4f7fb; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Yu Gothic", "游ゴシック", Meiryo, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    line-height: 1.65;
+    padding:
+      calc(14px + env(safe-area-inset-top))
+      calc(14px + env(safe-area-inset-right))
+      calc(20px + env(safe-area-inset-bottom))
+      calc(14px + env(safe-area-inset-left));
+    -webkit-text-size-adjust: 100%;
+  }
+  h1 { font-size: 1.35rem; margin: 0 0 8px; color: var(--blue); }
+  h2 { font-size: 1.05rem; margin: 18px 0 6px; border-left: 4px solid var(--blue); padding-left: 8px; }
+  p, li { font-size: 0.95rem; }
+  ul, ol { margin: 6px 0 10px; padding-left: 1.2em; }
+  .box {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 10px 0;
+  }
+  code, .url {
+    font-family: Consolas, "Yu Gothic UI", monospace;
+    font-size: 0.88rem;
+    word-break: break-all;
+    background: #eef2f6;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .url { display: block; padding: 8px 10px; margin: 6px 0; }
+  a { color: var(--blue); }
+  .warn { border-left: 4px solid #c2410c; background: #fff7ed; padding: 8px 10px; margin: 10px 0; font-size: 0.92rem; }
+  .ok { border-left: 4px solid #1f6b4a; background: #ecfdf5; padding: 8px 10px; margin: 10px 0; font-size: 0.92rem; }
+</style>
+</head>
+<body>
+<h1>Web教材をタブレットで使う（教師用）</h1>
+<p>このフォルダの HTML は、<strong>外部ライブラリなし・1ファイル完結</strong>の Web教材です。生徒は<strong>各自1台のタブレット</strong>でブラウザを開き、授業で指定された画面だけを操作します。投影は、設定が合っているかの見本に使います。</p>
+
+<div class="ok">
+  推奨ブラウザ：Chrome または Safari（最新に近いもの）。<br>
+  画面はタッチ用（ボタン高さ 44 px 以上、<code>100dvh</code>、ノッチ余白）にしてあります。
+</div>
+
+<h2>1. フォルダごと配る</h2>
+<p>次の6本と <code>index.html</code> を、<strong>同じフォルダ名のまま</strong>タブレットに入れます。</p>
+<ul>
+  <li>第1時_熱運動とブラウン運動.html</li>
+  <li>第2時_℃とK.html</li>
+  <li>第3時_熱量と温度.html</li>
+  <li>第4時_熱の授受.html</li>
+  <li>第5時_状態変化の平台.html</li>
+  <li>第6時_熱と仕事.html</li>
+</ul>
+<p>配布例：USBメモリ、校内ファイルサーバ、Google Drive／OneDrive（フォルダごとダウンロード）、MDM で一括配置。</p>
+
+<h2>2. 開き方（2通り）</h2>
+<div class="box">
+  <p><strong>A. タブレット内のファイルから開く（オフライン可）</strong></p>
+  <p>ファイルアプリで <code>index.html</code> をタップ → ブラウザで開く → その時間のリンクをタップ。</p>
+  <p class="warn">機種によっては「ファイルから開く」と「ホーム画面に追加」で挙動が違います。授業の前日に、1台で6本すべて開けるか必ず試してください。</p>
+</div>
+<div class="box">
+  <p><strong>B. 教室の Wi‑Fi ＋ 簡易 Web サーバ（同じ URL で全員が開く）</strong></p>
+  <p>先生の PC で、このフォルダを置いたうえで PowerShell から：</p>
+  <code>python -m http.server 8791</code>
+  <p>先生 PC の IP アドレスを調べ、タブレットのブラウザで次のように開きます（IP は例）：</p>
+  <span class="url">http://192.168.1.10:8791/index.html</span>
+  <p>全員が同じ Wi‑Fi にいる必要があります。ファイアウォールで 8791 を許可してください。</p>
+</div>
+
+<h2>3. 授業での使い方（データ用）</h2>
+<ul>
+  <li>事前・事後・遅延の選択問題のときは、<strong>タブレットは伏せる</strong>（Web教材は開かない）。</li>
+  <li>観察のあいだだけ開く。手順に書いた設定・回数だけ止め、<strong>自分の画面の数字</strong>をワークに写す。</li>
+  <li>投影だけを見て写した人は、論文の方法に人数を書く。</li>
+  <li>6時間のあいだ、HTML ファイルを更新しない（更新したら <code>画面ファイルの記録.txt</code> を取り直す）。</li>
+</ul>
+
+<h2>4. 論文の「方法」に書く1文（例）</h2>
+<div class="box">
+  HTML/CSS/JavaScript のみで作った Web教材を、生徒が各自のタブレットのブラウザで開き、指定した操作だけを止めて温度・熱量・グラフを読んだ。
+</div>
+
+<h2>5. 事前チェック（第1時の前）</h2>
+<ol>
+  <li>生徒代表のタブレット1台で、6本が開き、ボタンが押せる。</li>
+  <li>第3時：水5回・鉄5回で表とグラフが写せる。</li>
+  <li>第4時：設定1で開き、3設定とも「熱平衡成立」まで進む。</li>
+  <li>第5時：質量 100 g・10000 J 固定、氷2回・水95℃2回で止められる。</li>
+  <li>開けない台の人数をメモする（投影のみ）。</li>
+</ol>
+
+<p><a href="index.html">← 各時間の画面一覧へ</a></p>
+</body>
+</html>

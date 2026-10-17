@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d4e89">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>第3時　熱量と温度</title>
+<style>
+  :root {
+    --blue: #1d4e89;
+    --ink: #1c2430;
+    --line: #c5ced8;
+    --paper: #f4f7fb;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    overscroll-behavior: none;
+    font-family: "Yu Gothic", "游ゴシック", Meiryo, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    padding:
+      env(safe-area-inset-top)
+      env(safe-area-inset-right)
+      env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+    -webkit-text-size-adjust: 100%;
+  }
+  header { padding: 8px 12px 0; }
+  .kicker { margin: 0; color: var(--blue); font-weight: 700; font-size: 0.95rem; }
+  h1 { margin: 1px 0 2px; font-size: 1.25rem; }
+  .lead { margin: 0; line-height: 1.4; font-size: 0.95rem; }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px 0;
+  }
+  button {
+    font-family: inherit;
+    font-size: 16px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  button.active {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+  }
+  button:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .fixed {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px 0;
+  }
+  .chip {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+  }
+  .now {
+    margin-left: auto;
+    font-weight: 700;
+    color: var(--blue);
+  }
+  .main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    gap: 10px;
+    padding: 8px 12px 12px;
+  }
+  .stage {
+    flex: 1.4;
+    min-width: 0;
+    min-height: 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .graph-title {
+    margin: 0;
+    padding: 8px 12px 0;
+    color: var(--blue);
+    font-weight: 700;
+  }
+  .canvas-wrap { flex: 1; min-height: 0; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .table-wrap {
+    flex: 0.8;
+    min-width: 220px;
+    max-width: 360px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  th, td {
+    border-bottom: 1px solid var(--line);
+    padding: 8px 10px;
+    text-align: center;
+    height: 44px;
+  }
+  th { background: #e8f0f8; color: var(--blue); font-weight: 700; }
+  @media (max-width: 800px) {
+    .main { flex-direction: column; }
+    .table-wrap { max-width: none; flex: 0 0 auto; }
+    th, td { height: 36px; padding: 4px 6px; }
+  }
+  @media (max-height: 560px) {
+    .kicker, .lead { display: none; }
+    header { padding-top: 4px; }
+    h1 { font-size: 1rem; margin: 0; }
+  }
+  .table-wrap { max-width: 470px; flex: 1; }
+  th.w { color: #1d4ed8; background: #e7efff; }
+  th.f { color: #c2410c; background: #fff1e8; }
+  td.w { color: #1d4ed8; }
+  td.f { color: #c2410c; }
+  th, td { padding-left: 4px; padding-right: 4px; }
+  /* ===== 画面デザイン（全時間共通） ===== */
+  :root {
+    --blue: #1d4e89;
+    --blue-2: #2b6cb0;
+    --ink: #1c2430;
+    --muted: #5c6b7a;
+    --line: #d6dfe9;
+    --paper: #eef3f9;
+    --accent: #ea580c;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(16, 40, 80, 0.06), 0 6px 18px rgba(16, 40, 80, 0.08);
+  }
+  body { background: linear-gradient(180deg, #e6eef8 0%, #f4f7fb 280px); }
+  header {
+    margin: 0;
+    padding: 10px 16px 12px;
+    background: linear-gradient(120deg, #143a68 0%, #1d4e89 55%, #2b6cb0 100%);
+    color: #fff;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 14px;
+    align-items: center;
+    box-shadow: 0 2px 12px rgba(16, 40, 80, 0.2);
+  }
+  header .kicker {
+    grid-row: 1 / 3;
+    margin: 0;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  header h1 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.25rem, 2.4vw, 1.65rem);
+    letter-spacing: 0.04em;
+    line-height: 1.25;
+  }
+  header .lead {
+    margin: 3px 0 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: clamp(0.9rem, 1.5vw, 1rem);
+    line-height: 1.45;
+  }
+
+  .controls { padding: 10px 12px 0; gap: 10px; }
+  .group {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .glabel {
+    flex: 0 0 auto;
+    padding: 0 6px 0 8px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .group { flex-wrap: wrap; }
+  .group button { flex: 1 1 0; min-width: max-content; box-shadow: none; }
+
+  button {
+    font-size: 17px;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(16, 40, 80, 0.08);
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s, transform 0.08s;
+  }
+  button:hover:not(:disabled) { border-color: #9fb6d0; }
+  button:active:not(:disabled) { transform: translateY(1px) scale(0.985); }
+  button:focus-visible { outline: 3px solid rgba(43, 108, 176, 0.45); outline-offset: 2px; }
+  button.active {
+    background: linear-gradient(180deg, #2b6cb0, #1d4e89);
+    border-color: #1d4e89;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(29, 78, 137, 0.35);
+  }
+  button.primary {
+    background: linear-gradient(180deg, #fb8a3c, #ea580c);
+    border-color: #d9530a;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
+  }
+  button.primary:hover:not(:disabled) { border-color: #c2410c; }
+  button.ghost { background: #f4f7fb; color: var(--muted); box-shadow: none; }
+  button:disabled { opacity: 0.45; cursor: default; }
+
+  button.toggle {
+    position: relative;
+    padding-left: 58px;
+    padding-right: 10px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 16px;
+  }
+  button.toggle::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    width: 38px;
+    height: 22px;
+    margin-top: -11px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    transition: background 0.15s;
+  }
+  button.toggle::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    margin-top: -9px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: left 0.15s;
+  }
+  button.toggle.active {
+    background: #fff;
+    color: var(--ink);
+    border-color: #86b7e8;
+    box-shadow: none;
+  }
+  button.toggle.active::before { background: #22c55e; }
+  button.toggle.active::after { left: 30px; }
+
+  .slider {
+    width: auto;
+    margin: 10px 12px 0;
+    padding: 2px 8px 2px 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .sliders { padding: 10px 12px 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; }
+  .sliders .slider { margin: 0; }
+  .slider input::-webkit-slider-runnable-track {
+    height: 10px;
+    background: linear-gradient(90deg, #bcd3ea, #1d4e89);
+    border-radius: 999px;
+  }
+  .slider input::-moz-range-track {
+    height: 10px;
+    background: linear-gradient(90deg, #bcd3ea, #1d4e89);
+    border-radius: 999px;
+  }
+  .slider input.hot::-webkit-slider-runnable-track { background: linear-gradient(90deg, #38bdf8, #a78bfa 50%, #f87171); }
+  .slider input.hot::-moz-range-track { background: linear-gradient(90deg, #38bdf8, #a78bfa 50%, #f87171); }
+  .slider input::-webkit-slider-thumb {
+    width: 30px;
+    height: 30px;
+    margin-top: -10px;
+    background: #fff;
+    border: 3px solid #1d4e89;
+    box-shadow: 0 2px 6px rgba(16, 40, 80, 0.3);
+  }
+  .slider input::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: #fff;
+    border: 3px solid #1d4e89;
+    box-shadow: 0 2px 6px rgba(16, 40, 80, 0.3);
+  }
+  .slider .read, .read {
+    min-width: 5.6em;
+    padding: 6px 10px;
+    text-align: center;
+    color: var(--blue);
+    background: #f1f6fc;
+    border-radius: 10px;
+    font-size: 17px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .ends { padding: 4px 18px 0; }
+
+  .stage, .card, .chip, .table-wrap, .result, .heat, .graph, .obj {
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .stage { border: 1px solid rgba(15, 30, 60, 0.12); }
+  body > .stage { margin-top: 10px; }
+  .card, .chip, .table-wrap, .result, .heat, .graph { border-color: var(--line); }
+  .card .name, .graph-title, .graph .title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--blue);
+    font-weight: 700;
+  }
+  .card .name::before, .graph-title::before, .graph .title::before {
+    content: "";
+    width: 4px;
+    height: 1em;
+    border-radius: 2px;
+    background: var(--blue-2);
+  }
+  .chip { font-weight: 600; }
+  .chip.now {
+    font-size: 1.15rem;
+    color: var(--blue);
+    background: linear-gradient(180deg, #fff, #eef5fd);
+    border-color: #a9c6e6;
+  }
+  table { font-variant-numeric: tabular-nums; }
+  th { background: #eaf1f9; color: var(--blue); font-size: 0.9rem; letter-spacing: 0.02em; }
+  tbody tr:nth-child(even) td { background: #f8fafd; }
+
+  .hud {
+    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    font-weight: 700;
+    color: #f1f7ff;
+    background: rgba(10, 20, 36, 0.62);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(158, 197, 232, 0.28);
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .legend {
+    background: #0f1a2e;
+    border-top: 1px solid rgba(158, 197, 232, 0.14);
+    gap: 10px;
+    font-size: 0.95rem;
+  }
+  .legend span {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  @media (max-width: 900px), (max-height: 560px) {
+    .glabel { display: none; }
+    .group { gap: 4px; padding: 4px; }
+    button.toggle { padding-left: 12px; padding-right: 12px; text-align: center; }
+    button.toggle::before, button.toggle::after { display: none; }
+    button.toggle.active { background: #ecfdf3; border-color: #22c55e; color: #166534; }
+  }
+  @media (max-width: 600px) {
+    header { grid-template-columns: 1fr; padding: 8px 12px 10px; }
+    header .kicker { grid-row: auto; justify-self: start; padding: 3px 10px; margin-bottom: 4px; }
+    .glabel { display: none; }
+  }
+  @media (max-height: 560px) {
+    header { padding: 6px 12px; }
+    header h1 { font-size: 1.05rem; }
+    .controls { padding-top: 6px; }
+    .slider { margin-top: 6px; }
+    body > .stage { margin-top: 6px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <p class="kicker">物理基礎　熱　第3時</p>
+  <h1>熱量と温度</h1>
+  <p class="lead">見るグラフは「加えた熱量–温度」です。先に水を5回、次に「鉄」→「鉄 20 ℃」で鉄を5回。水の線は残ります。</p>
+</header>
+<div class="controls">
+  <div class="group narrow">
+    <span class="glabel">物質</span>
+    <button type="button" id="waterBtn" class="active">水</button>
+    <button type="button" id="ironBtn">鉄</button>
+  </div>
+  <div class="group">
+    <span class="glabel">操作</span>
+    <button type="button" id="startBtn" class="active">水 20 ℃</button>
+    <button type="button" id="heatBtn" class="primary">加熱（2000 J）</button>
+    <button type="button" id="resetBtn" class="ghost">リセット</button>
+  </div>
+</div>
+<div class="fixed">
+  <span class="chip">質量 100 g</span>
+  <span class="chip">加熱 2000 J</span>
+  <span class="chip now" id="nowRead">いま 20.00 ℃</span>
+</div>
+<div class="main">
+  <section class="stage">
+    <p class="graph-title">加えた熱量–温度</p>
+    <div class="canvas-wrap">
+      <canvas id="view" aria-label="加えた熱量と温度のグラフ"></canvas>
+    </div>
+  </section>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th rowspan="2">回</th><th rowspan="2">加えた熱量<br>（J）</th><th colspan="2" class="w">水</th><th colspan="2" class="f">鉄</th></tr>
+        <tr><th class="w">温度（℃）</th><th class="w">ΔT（℃）</th><th class="f">温度（℃）</th><th class="f">ΔT（℃）</th></tr>
+      </thead>
+      <tbody id="log"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+(function () {
+  const canvas = document.getElementById("view");
+  const ctx = canvas.getContext("2d");
+  const waterBtn = document.getElementById("waterBtn");
+  const ironBtn = document.getElementById("ironBtn");
+  const startBtn = document.getElementById("startBtn");
+  const heatBtn = document.getElementById("heatBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const nowRead = document.getElementById("nowRead");
+  const log = document.getElementById("log");
+
+  const MASS = 100;
+  const HEAT = 2000;
+  const START = 20;
+  const LIMIT = 5;
+  const MATERIALS = {
+    water: { name: "水", c: 4.2 },
+    iron: { name: "鉄", c: 0.45 }
+  };
+
+  const COLORS = { water: "#2563eb", iron: "#ea580c" };
+  const ANIM_MS = 1400;
+
+  let material = "water";
+  let series = { water: [{ q: 0, t: START }], iron: [{ q: 0, t: START }] };
+  let points = series.water;
+  let anim = null;
+
+  function deltaT() {
+    return HEAT / (MASS * MATERIALS[material].c);
+  }
+
+  function fmt(v) {
+    return Number(v).toFixed(2);
+  }
+
+  /* 鉄の記録があるときは鉄も入る目盛りにして、2本を同じ軸で比べる */
+  function axisNow() {
+    const ironUsed = series.iron.length > 1 || (anim && material === "iron");
+    return ironUsed ? { max: 300, step: 50 } : { max: 60, step: 10 };
+  }
+
+  function cell(p, key) {
+    return p ? fmt(p[key]) : "";
+  }
+
+  function renderTable() {
+    let html = "";
+    for (let i = 1; i <= LIMIT; i += 1) {
+      const w = series.water[i];
+      const f = series.iron[i];
+      html += "<tr><td>" + i + "</td><td>" + HEAT * i + "</td><td class=\"w\">" + cell(w, "t") + "</td><td class=\"w\">" + cell(w, "dT") +
+        "</td><td class=\"f\">" + cell(f, "t") + "</td><td class=\"f\">" + cell(f, "dT") + "</td></tr>";
+    }
+    log.innerHTML = html;
+    const last = points[points.length - 1];
+    nowRead.textContent = MATERIALS[material].name + "　いま " + fmt(last.t) + " ℃";
+    startBtn.textContent = MATERIALS[material].name + " 20 ℃";
+    const done = points.length - 1 >= LIMIT;
+    heatBtn.disabled = done || !!anim;
+    heatBtn.textContent = done ? "5回で止める" : (anim ? "加熱中" : "加熱（2000 J）");
+    waterBtn.disabled = !!anim;
+    ironBtn.disabled = !!anim;
+    startBtn.disabled = !!anim;
+    resetBtn.disabled = !!anim;
+  }
+
+  function draw() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(240, Math.floor(canvas.clientWidth));
+    const h = Math.max(140, Math.floor(canvas.clientHeight));
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+
+    const padL = 72;
+    const padR = 28;
+    const padT = 38;
+    const padB = 52;
+    const plotW = Math.max(40, w - padL - padR);
+    const plotH = Math.max(40, h - padT - padB);
+    const qMax = 10000;
+    const axis = axisNow();
+    const tMin = 0;
+    const tMax = axis.max;
+
+    function xOf(q) { return padL + (q / qMax) * plotW; }
+    function yOf(t) { return padT + (1 - (t - tMin) / (tMax - tMin)) * plotH; }
+
+    ctx.strokeStyle = "#e8f0f8";
+    ctx.lineWidth = 1;
+    ctx.fillStyle = "#5c6b7a";
+    ctx.font = "14px 'Yu Gothic', Meiryo, sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    for (let t = tMin; t <= tMax; t += axis.step) {
+      const y = yOf(t);
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(padL + plotW, y);
+      ctx.stroke();
+      ctx.fillText(String(t), padL - 8, y);
+    }
+    for (let q = 0; q <= qMax; q += 2000) {
+      const x = xOf(q);
+      ctx.beginPath();
+      ctx.moveTo(x, padT);
+      ctx.lineTo(x, padT + plotH);
+      ctx.stroke();
+      ctx.fillStyle = "#5c6b7a";
+      ctx.textBaseline = "top";
+      if (q === 0) ctx.textAlign = "left";
+      else if (q === qMax) ctx.textAlign = "right";
+      else ctx.textAlign = "center";
+      ctx.fillText(String(q), x, padT + plotH + 8);
+    }
+
+    ctx.strokeStyle = "#1c2430";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, padT + plotH);
+    ctx.lineTo(padL + plotW, padT + plotH);
+    ctx.stroke();
+
+    ctx.fillStyle = "#1d4e89";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "bottom";
+    ctx.fillText("温度（℃）", padL, padT - 4);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText("加えた熱量（J）", padL + plotW / 2, h - 18);
+
+    function drawSeries(key) {
+      const pts = series[key];
+      const current = key === material;
+      const line = pts.slice();
+      if (anim && current) line.push({ q: anim.q, t: anim.t });
+      const color = COLORS[key];
+      ctx.globalAlpha = current ? 1 : 0.55;
+      if (line.length > 1) {
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = current ? 3 : 2.5;
+        ctx.lineJoin = "round";
+        line.forEach(function (p, i) {
+          if (i === 0) ctx.moveTo(xOf(p.q), yOf(p.t));
+          else ctx.lineTo(xOf(p.q), yOf(p.t));
+        });
+        ctx.stroke();
+      }
+      pts.forEach(function (p) {
+        ctx.beginPath();
+        ctx.arc(xOf(p.q), yOf(p.t), 5, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+      });
+      const end = line[line.length - 1];
+      if (line.length > 1) {
+        ctx.font = "bold 15px 'Yu Gothic', Meiryo, sans-serif";
+        ctx.fillStyle = color;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(MATERIALS[key].name, Math.min(xOf(end.q) + 8, padL + plotW - 20), yOf(end.t) - 6);
+      }
+      ctx.globalAlpha = 1;
+    }
+    drawSeries(material === "water" ? "iron" : "water");
+    drawSeries(material);
+
+    ctx.font = "14px 'Yu Gothic', Meiryo, sans-serif";
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    let lx = padL + plotW - 150;
+    ["water", "iron"].forEach(function (key, i) {
+      const ly = padT + 14 + i * 22;
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.fillRect(lx - 6, ly - 10, 150, 20);
+      ctx.strokeStyle = COLORS[key];
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(lx, ly);
+      ctx.lineTo(lx + 28, ly);
+      ctx.stroke();
+      ctx.fillStyle = "#1c2430";
+      ctx.fillText(MATERIALS[key].name + "（100 g）", lx + 36, ly);
+    });
+  }
+
+  function animFrame(now) {
+    if (!anim) return;
+    if (!anim.start) anim.start = now;
+    const u = Math.min(1, (now - anim.start) / ANIM_MS);
+    anim.q = anim.q0 + HEAT * u;
+    anim.t = anim.t0 + anim.dT * u;
+    nowRead.textContent = MATERIALS[material].name + "　いま " + fmt(anim.t) + " ℃";
+    if (u >= 1) {
+      points.push({ q: anim.q0 + HEAT, t: anim.t0 + anim.dT, dT: anim.dT });
+      anim = null;
+      paint();
+      return;
+    }
+    draw();
+    requestAnimationFrame(animFrame);
+  }
+
+  function paint() {
+    renderTable();
+    draw();
+  }
+
+  function syncStartBtn() {
+    startBtn.classList.toggle("active", points.length === 1);
+  }
+
+  function resetCurrent() {
+    series[material] = [{ q: 0, t: START }];
+    points = series[material];
+    syncStartBtn();
+    paint();
+  }
+
+  function resetAll() {
+    series = { water: [{ q: 0, t: START }], iron: [{ q: 0, t: START }] };
+    points = series[material];
+    syncStartBtn();
+    paint();
+  }
+
+  function setMaterial(key) {
+    material = key;
+    points = series[key];
+    waterBtn.classList.toggle("active", key === "water");
+    ironBtn.classList.toggle("active", key === "iron");
+    syncStartBtn();
+    paint();
+  }
+
+  heatBtn.addEventListener("click", function () {
+    if (anim || points.length - 1 >= LIMIT) return;
+    const prev = points[points.length - 1];
+    anim = { q0: prev.q, t0: prev.t, dT: deltaT(), q: prev.q, t: prev.t, start: 0 };
+    startBtn.classList.remove("active");
+    renderTable();
+    requestAnimationFrame(animFrame);
+  });
+
+  waterBtn.addEventListener("click", function () { setMaterial("water"); });
+  ironBtn.addEventListener("click", function () { setMaterial("iron"); });
+  startBtn.addEventListener("click", resetCurrent);
+  resetBtn.addEventListener("click", resetAll);
+
+  let resizeTimer = 0;
+  window.addEventListener("resize", function () {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(draw, 80);
+  });
+  window.addEventListener("orientationchange", function () {
+    window.setTimeout(draw, 120);
+  });
+  canvas.addEventListener("contextmenu", function (event) {
+    event.preventDefault();
+  });
+
+  paint();
+})();
+</script>
+</body>
+</html>

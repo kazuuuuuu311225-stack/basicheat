@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d4e89">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>第6時　熱と仕事</title>
+<style>
+  :root {
+    --blue: #1d4e89;
+    --ink: #1c2430;
+    --line: #c5ced8;
+    --paper: #f4f7fb;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    overscroll-behavior: none;
+    font-family: "Yu Gothic", "游ゴシック", Meiryo, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    padding:
+      env(safe-area-inset-top)
+      env(safe-area-inset-right)
+      env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+    -webkit-text-size-adjust: 100%;
+  }
+  header { padding: 8px 12px 0; }
+  .kicker { margin: 0; color: var(--blue); font-weight: 700; font-size: 0.95rem; }
+  h1 { margin: 1px 0 2px; font-size: 1.25rem; }
+  .lead { margin: 0; line-height: 1.4; font-size: 0.95rem; }
+  .joule {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+    padding: 8px 12px 0;
+  }
+  .joule canvas {
+    width: 220px;
+    height: 110px;
+    background: #0b1220;
+    border-radius: 12px;
+    flex: 0 0 220px;
+    touch-action: none;
+  }
+  .joule p { margin: 0; line-height: 1.45; }
+  .controls, .sliders { padding: 8px 12px 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; }
+  button {
+    font-family: inherit;
+    font-size: 16px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  button.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .slider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    margin-bottom: 4px;
+    touch-action: pan-x;
+  }
+  .slider[hidden] { display: none; }
+  .slider input {
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    margin: 0;
+    background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .slider input::-webkit-slider-runnable-track { height: 8px; background: #c5ced8; border-radius: 999px; }
+  .slider input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 28px;
+    height: 28px;
+    margin-top: -10px;
+    border: 0;
+    border-radius: 50%;
+    background: #1d4e89;
+  }
+  .slider input::-moz-range-track { height: 8px; background: #c5ced8; border: 0; border-radius: 999px; }
+  .slider input::-moz-range-thumb { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #1d4e89; }
+  .read { min-width: 6.2em; font-weight: 700; color: var(--blue); }
+  .result {
+    margin: 8px 12px 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .result span { display: block; font-weight: 500; font-size: 1rem; margin-top: 4px; }
+  .stage {
+    flex: 1;
+    min-height: 100px;
+    margin: 8px 12px 12px;
+    background: #0b1220;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stage canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+  .hud {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #e8f0f8;
+    background: rgba(8, 16, 28, 0.72);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 1.05rem;
+  }
+  @media (max-width: 700px) {
+    .joule canvas { width: 140px; flex-basis: 140px; height: 96px; }
+  }
+  @media (max-height: 560px) {
+    .kicker, .lead { display: none; }
+    h1 { font-size: 1rem; margin: 0; }
+    .joule canvas { height: 72px; }
+  }
+  .joule > div {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #fff;
+    border: 1px solid #d6dfe9;
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(16, 40, 80, 0.06), 0 6px 18px rgba(16, 40, 80, 0.08);
+  }
+  .joule > div button { align-self: flex-start; padding: 8px 20px; }
+  .joule canvas { box-shadow: 0 6px 18px rgba(16, 40, 80, 0.16); }
+  .result { font-size: 0.95rem; font-weight: 500; color: #5c6b7a; }
+  .controls .group:first-child { flex-grow: 2; }
+  @media (max-height: 560px) {
+    body { height: auto; overflow-y: auto; }
+    .stage { flex: 0 0 220px; }
+    .joule > div { padding: 6px 10px; gap: 4px; }
+    .joule > div p { font-size: 0.85rem; }
+    .result { padding: 4px 12px; }
+  }
+  #formula {
+    font-size: clamp(1.3rem, 2.6vw, 1.85rem);
+    font-weight: 800;
+    color: #1d4e89;
+    letter-spacing: 0.02em;
+  }
+  /* ===== 画面デザイン（全時間共通） ===== */
+  :root {
+    --blue: #1d4e89;
+    --blue-2: #2b6cb0;
+    --ink: #1c2430;
+    --muted: #5c6b7a;
+    --line: #d6dfe9;
+    --paper: #eef3f9;
+    --accent: #ea580c;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(16, 40, 80, 0.06), 0 6px 18px rgba(16, 40, 80, 0.08);
+  }
+  body { background: linear-gradient(180deg, #e6eef8 0%, #f4f7fb 280px); }
+  header {
+    margin: 0;
+    padding: 10px 16px 12px;
+    background: linear-gradient(120deg, #143a68 0%, #1d4e89 55%, #2b6cb0 100%);
+    color: #fff;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 14px;
+    align-items: center;
+    box-shadow: 0 2px 12px rgba(16, 40, 80, 0.2);
+  }
+  header .kicker {
+    grid-row: 1 / 3;
+    margin: 0;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  header h1 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.25rem, 2.4vw, 1.65rem);
+    letter-spacing: 0.04em;
+    line-height: 1.25;
+  }
+  header .lead {
+    margin: 3px 0 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: clamp(0.9rem, 1.5vw, 1rem);
+    line-height: 1.45;
+  }
+
+  .controls { padding: 10px 12px 0; gap: 10px; }
+  .group {
+    flex: 1 1 340px;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .group.narrow { flex: 1 1 220px; }
+  .glabel {
+    flex: 0 0 auto;
+    padding: 0 6px 0 8px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .group button { flex: 1 1 0; min-width: 0; box-shadow: none; }
+
+  button {
+    font-size: 17px;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(16, 40, 80, 0.08);
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s, transform 0.08s;
+  }
+  button:hover:not(:disabled) { border-color: #9fb6d0; }
+  button:active:not(:disabled) { transform: translateY(1px) scale(0.985); }
+  button:focus-visible { outline: 3px solid rgba(43, 108, 176, 0.45); outline-offset: 2px; }
+  button.active {
+    background: linear-gradient(180deg, #2b6cb0, #1d4e89);
+    border-color: #1d4e89;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(29, 78, 137, 0.35);
+  }
+  button.primary {
+    background: linear-gradient(180deg, #fb8a3c, #ea580c);
+    border-color: #d9530a;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
+  }
+  button.primary:hover:not(:disabled) { border-color: #c2410c; }
+  button.ghost { background: #f4f7fb; color: var(--muted); box-shadow: none; }
+  button:disabled { opacity: 0.45; cursor: default; }
+
+  button.toggle {
+    position: relative;
+    padding-left: 58px;
+    padding-right: 10px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 16px;
+  }
+  button.toggle::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    width: 38px;
+    height: 22px;
+    margin-top: -11px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    transition: background 0.15s;
+  }
+  button.toggle::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    margin-top: -9px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: left 0.15s;
+  }
+  button.toggle.active {
+    background: #fff;
+    color: var(--ink);
+    border-color: #86b7e8;
+    box-shadow: none;
+  }
+  button.toggle.active::before { background: #22c55e; }
+  button.toggle.active::after { left: 30px; }
+
+  .slider {
+    width: auto;
+    margin: 10px 12px 0;
+    padding: 2px 8px 2px 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .sliders { padding: 10px 12px 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; }
+  .sliders .slider { margin: 0; }
+  .slider input::-webkit-slider-runnable-track {
+    height: 10px;
+    background: linear-gradient(90deg, #bcd3ea, #1d4e89);
+    border-radius: 999px;
+  }
+  .slider input::-moz-range-track {
+    height: 10px;
+    background: linear-gradient(90deg, #bcd3ea, #1d4e89);
+    border-radius: 999px;
+  }
+  .slider input.hot::-webkit-slider-runnable-track { background: linear-gradient(90deg, #38bdf8, #a78bfa 50%, #f87171); }
+  .slider input.hot::-moz-range-track { background: linear-gradient(90deg, #38bdf8, #a78bfa 50%, #f87171); }
+  .slider input::-webkit-slider-thumb {
+    width: 30px;
+    height: 30px;
+    margin-top: -10px;
+    background: #fff;
+    border: 3px solid #1d4e89;
+    box-shadow: 0 2px 6px rgba(16, 40, 80, 0.3);
+  }
+  .slider input::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: #fff;
+    border: 3px solid #1d4e89;
+    box-shadow: 0 2px 6px rgba(16, 40, 80, 0.3);
+  }
+  .slider .read, .read {
+    min-width: 5.6em;
+    padding: 6px 10px;
+    text-align: center;
+    color: var(--blue);
+    background: #f1f6fc;
+    border-radius: 10px;
+    font-size: 17px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .ends { padding: 4px 18px 0; }
+
+  .stage, .card, .chip, .table-wrap, .result, .heat, .graph, .obj {
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .stage { border: 1px solid rgba(15, 30, 60, 0.12); }
+  body > .stage { margin-top: 10px; }
+  .card, .chip, .table-wrap, .result, .heat, .graph { border-color: var(--line); }
+  .card .name, .graph-title, .graph .title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--blue);
+    font-weight: 700;
+  }
+  .card .name::before, .graph-title::before, .graph .title::before {
+    content: "";
+    width: 4px;
+    height: 1em;
+    border-radius: 2px;
+    background: var(--blue-2);
+  }
+  .chip { font-weight: 600; }
+  .chip.now {
+    font-size: 1.15rem;
+    color: var(--blue);
+    background: linear-gradient(180deg, #fff, #eef5fd);
+    border-color: #a9c6e6;
+  }
+  table { font-variant-numeric: tabular-nums; }
+  th { background: #eaf1f9; color: var(--blue); font-size: 0.9rem; letter-spacing: 0.02em; }
+  tbody tr:nth-child(even) td { background: #f8fafd; }
+
+  .hud {
+    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    font-weight: 700;
+    color: #f1f7ff;
+    background: rgba(10, 20, 36, 0.62);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(158, 197, 232, 0.28);
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .legend {
+    background: #0f1a2e;
+    border-top: 1px solid rgba(158, 197, 232, 0.14);
+    gap: 10px;
+    font-size: 0.95rem;
+  }
+  .legend span {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  @media (max-width: 900px), (max-height: 560px) {
+    .glabel { display: none; }
+    .group { gap: 4px; padding: 4px; }
+    button.toggle { padding-left: 12px; padding-right: 12px; text-align: center; }
+    button.toggle::before, button.toggle::after { display: none; }
+    button.toggle.active { background: #ecfdf3; border-color: #22c55e; color: #166534; }
+  }
+  @media (max-width: 600px) {
+    header { grid-template-columns: 1fr; padding: 8px 12px 10px; }
+    header .kicker { grid-row: auto; justify-self: start; padding: 3px 10px; margin-bottom: 4px; }
+    .glabel { display: none; }
+  }
+  @media (max-height: 560px) {
+    header { padding: 6px 12px; }
+    header h1 { font-size: 1.05rem; }
+    .controls { padding-top: 6px; }
+    .slider { margin-top: 6px; }
+    body > .stage { margin-top: 6px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <p class="kicker">物理基礎　熱　第6時</p>
+  <h1>熱と仕事、熱量の計算</h1>
+  <p class="lead">仕事も熱も、単位は J です。熱量は Q＝mcΔt で計算します。</p>
+</header>
+<div class="joule">
+  <canvas id="joule" aria-label="おもりと水"></canvas>
+  <div>
+    <button type="button" id="dropBtn" class="primary">おもりを落とす</button>
+    <p id="jouleText">教科書に図があるとき、おもりを落とします。</p>
+  </div>
+</div>
+<div class="controls">
+  <div class="group">
+    <span class="glabel">物質 c</span>
+    <button type="button" id="waterBtn" class="active">水　4.2</button>
+    <button type="button" id="ironBtn">鉄　0.45</button>
+    <button type="button" id="alBtn">アルミ　0.90</button>
+  </div>
+  <div class="group narrow">
+    <span class="glabel">求める</span>
+    <button type="button" id="modeQ" class="active">Q を求める</button>
+    <button type="button" id="modeDt">Δt を求める</button>
+  </div>
+  <div class="group narrow">
+    <span class="glabel">操作</span>
+    <button type="button" id="heatBtn" class="primary">加熱</button>
+    <button type="button" id="resetBtn" class="ghost">リセット</button>
+  </div>
+</div>
+<div class="sliders">
+  <label class="slider">質量
+    <input id="massSlider" type="range" min="50" max="1000" step="10" value="100" aria-label="質量">
+    <span class="read" id="massRead">100 g</span>
+  </label>
+  <label class="slider" id="dtRow">温度上昇 Δt
+    <input id="dtSlider" type="range" min="1" max="50" step="1" value="10" aria-label="温度上昇">
+    <span class="read" id="dtRead">10 ℃</span>
+  </label>
+  <label class="slider" id="qRow" hidden>加える熱量 Q
+    <input id="qSlider" type="range" min="100" max="20000" step="100" value="4200" aria-label="加える熱量">
+    <span class="read" id="qRead">4200 J</span>
+  </label>
+</div>
+<div class="result" id="result">c の単位は J/(g·K)。Δt は ℃ の上昇で計算できます。<span id="formula">Q ＝ m × c × Δt</span></div>
+<div class="stage">
+  <div class="hud" id="hud">水　20.0 ℃</div>
+  <canvas id="beaker" aria-label="物質の温度"></canvas>
+</div>
+<script>
+(function () {
+  const C = { water: 42 / 10, iron: 45 / 100, al: 9 / 10 };
+  const C_TEXT = { water: "4.2", iron: "0.45", al: "0.90" };
+  const NAME = { water: "水", iron: "鉄", al: "アルミ" };
+  const COLOR = { water: "#7dd3fc", iron: "#e7c27a", al: "#d5dde6" };
+  const START = 20;
+
+  const massSlider = document.getElementById("massSlider");
+  const dtSlider = document.getElementById("dtSlider");
+  const qSlider = document.getElementById("qSlider");
+  const massRead = document.getElementById("massRead");
+  const dtRead = document.getElementById("dtRead");
+  const qRead = document.getElementById("qRead");
+  const formula = document.getElementById("formula");
+  const hud = document.getElementById("hud");
+  const jouleText = document.getElementById("jouleText");
+  const dtRow = document.getElementById("dtRow");
+  const qRow = document.getElementById("qRow");
+  const jouleCanvas = document.getElementById("joule");
+  const beaker = document.getElementById("beaker");
+  const jctx = jouleCanvas.getContext("2d");
+  const bctx = beaker.getContext("2d");
+
+  let mat = "water";
+  let mode = "Q";
+  let shownT = START;
+  let targetT = START;
+  let heatAnim = null;
+  let drop = null;
+  let jouleDone = false;
+  let mols = [];
+  let box = { w: 0, h: 0 };
+
+  function fmt(v) {
+    const n = Math.round(v * 100) / 100;
+    if (Math.abs(n - Math.round(n)) < 0.001) return String(Math.round(n));
+    if (Math.abs(n * 10 - Math.round(n * 10)) < 0.001) return n.toFixed(1);
+    return n.toFixed(2);
+  }
+
+  function mass() { return Number(massSlider.value); }
+  function c() { return C[mat]; }
+
+  function values() {
+    const m = mass();
+    if (mode === "Q") {
+      const dt = Number(dtSlider.value);
+      return { m: m, c: c(), dt: dt, q: m * c() * dt };
+    }
+    const q = Number(qSlider.value);
+    return { m: m, c: c(), q: q, dt: q / (m * c()) };
+  }
+
+  function paintFormula() {
+    const v = values();
+    massRead.textContent = v.m + " g";
+    dtRead.textContent = Number(dtSlider.value) + " ℃";
+    qRead.textContent = Number(qSlider.value) + " J";
+    if (heatAnim || Math.abs(shownT - START) > 0.05) return;
+    if (mode === "Q") {
+      formula.textContent = "Q ＝ " + v.m + " × " + C_TEXT[mat] + " × " + v.dt;
+    } else {
+      formula.textContent = "Δt ＝ " + v.q + " ÷（" + v.m + " × " + C_TEXT[mat] + "）";
+    }
+  }
+
+  function clearHeat() {
+    heatAnim = null;
+    shownT = START;
+    targetT = START;
+    hud.textContent = NAME[mat] + "　" + START.toFixed(1) + " ℃";
+    paintFormula();
+  }
+
+  function setMat(key) {
+    mat = key;
+    ["water", "iron", "al"].forEach(function (name) {
+      document.getElementById(name + "Btn").classList.toggle("active", name === key);
+    });
+    clearHeat();
+    rebuild();
+  }
+
+  function setMode(next) {
+    mode = next;
+    document.getElementById("modeQ").classList.toggle("active", next === "Q");
+    document.getElementById("modeDt").classList.toggle("active", next === "dt");
+    dtRow.hidden = next !== "Q";
+    qRow.hidden = next !== "dt";
+    clearHeat();
+  }
+
+  function fit(canvas, w, h) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function rebuild() {
+    const w = Math.max(80, beaker.clientWidth);
+    const h = Math.max(80, beaker.clientHeight);
+    if (w !== box.w || h !== box.h || mols.length === 0) {
+      box.w = w;
+      box.h = h;
+      fit(beaker, w, h);
+      mols = [];
+      const n = Math.max(18, Math.min(40, Math.round(w * h / 14000)));
+      for (let i = 0; i < n; i += 1) {
+        const angle = Math.random() * Math.PI * 2;
+        mols.push({
+          x: 24 + Math.random() * (w - 48),
+          y: h * 0.45 + Math.random() * (h * 0.45),
+          a: angle
+        });
+      }
+    }
+  }
+
+  function molSpeed() {
+    return 0.35 * Math.sqrt(shownT + 273.15);
+  }
+
+  function layout() {
+    const w = box.w;
+    const h = box.h;
+    const thermoW = Math.min(90, w * 0.2);
+    const left = thermoW + 16;
+    const right = w - 16;
+    const top = h * 0.16;
+    const bottom = h - 46;
+    return { thermoW: thermoW, left: left, right: right, top: top, bottom: bottom };
+  }
+
+  function drawThermo(L, h) {
+    const cx = L.thermoW * 0.42;
+    const top = 26;
+    const bulbR = 12;
+    const bottom = h - 30 - bulbR * 2;
+    const tubeW = 10;
+    const scaleMax = Math.max(100, Math.ceil((targetT + 1) / 50) * 50);
+    function yOf(t) { return bottom - (t / scaleMax) * (bottom - top); }
+    bctx.fillStyle = "#1e2b44";
+    bctx.fillRect(cx - tubeW / 2 - 3, top - 6, tubeW + 6, bottom - top + 12);
+    bctx.beginPath();
+    bctx.arc(cx, bottom + bulbR, bulbR + 3, 0, Math.PI * 2);
+    bctx.fill();
+    bctx.fillStyle = "#ef4444";
+    const yl = yOf(Math.max(0, shownT));
+    bctx.fillRect(cx - tubeW / 2, yl, tubeW, bottom - yl + bulbR);
+    bctx.beginPath();
+    bctx.arc(cx, bottom + bulbR, bulbR, 0, Math.PI * 2);
+    bctx.fill();
+    bctx.font = "12px 'Yu Gothic', Meiryo, sans-serif";
+    bctx.textAlign = "left";
+    bctx.textBaseline = "middle";
+    const step = scaleMax / 4;
+    for (let t = 0; t <= scaleMax + 0.01; t += step) {
+      const y = yOf(t);
+      bctx.strokeStyle = "rgba(232, 240, 248, 0.7)";
+      bctx.lineWidth = 1;
+      bctx.beginPath();
+      bctx.moveTo(cx + tubeW / 2 + 3, y);
+      bctx.lineTo(cx + tubeW / 2 + 8, y);
+      bctx.stroke();
+      bctx.fillStyle = "#cbd8e6";
+      bctx.fillText(String(Math.round(t)), cx + tubeW / 2 + 11, y);
+    }
+  }
+
+  function drawFlames(L, h) {
+    const n = 5;
+    const span = L.right - L.left;
+    for (let i = 0; i < n; i += 1) {
+      const fx = L.left + span * ((i + 0.5) / n);
+      const flick = 0.75 + 0.25 * Math.sin(performance.now() / 90 + i * 1.7);
+      bctx.beginPath();
+      bctx.moveTo(fx - 8, h - 4);
+      bctx.quadraticCurveTo(fx, h - 4 - 60 * flick, fx + 8, h - 4);
+      bctx.fillStyle = "rgba(249, 115, 22, 0.85)";
+      bctx.fill();
+      bctx.beginPath();
+      bctx.moveTo(fx - 4, h - 4);
+      bctx.quadraticCurveTo(fx, h - 4 - 34 * flick, fx + 4, h - 4);
+      bctx.fillStyle = "rgba(253, 224, 71, 0.95)";
+      bctx.fill();
+    }
+  }
+
+  /* 水は容器の中を自由に動き、鉄・アルミは決まった位置で振動する */
+  function drawBeaker() {
+    rebuild();
+    const w = box.w;
+    const h = box.h;
+    const L = layout();
+    const bg = bctx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, "#0d1729");
+    bg.addColorStop(1, "#060c18");
+    bctx.fillStyle = bg;
+    bctx.fillRect(0, 0, w, h);
+    drawThermo(L, h);
+    if (heatAnim) drawFlames(L, h);
+
+    const speed = molSpeed();
+    if (mat === "water") {
+      const surface = L.top + (L.bottom - L.top) * 0.18;
+      const g = bctx.createLinearGradient(0, surface, 0, L.bottom);
+      g.addColorStop(0, "rgba(56, 189, 248, 0.22)");
+      g.addColorStop(1, "rgba(29, 78, 137, 0.35)");
+      bctx.fillStyle = g;
+      bctx.fillRect(L.left, surface, L.right - L.left, L.bottom - surface);
+      bctx.strokeStyle = "#9ec5e8";
+      bctx.lineWidth = 3;
+      bctx.beginPath();
+      bctx.moveTo(L.left, L.top);
+      bctx.lineTo(L.left, L.bottom);
+      bctx.lineTo(L.right, L.bottom);
+      bctx.lineTo(L.right, L.top);
+      bctx.stroke();
+      const x0 = L.left + 8;
+      const x1 = L.right - 8;
+      const y0 = surface + 8;
+      const y1 = L.bottom - 8;
+      bctx.fillStyle = COLOR.water;
+      for (let i = 0; i < mols.length; i += 1) {
+        const mol = mols[i];
+        if (mol.x < x0 || mol.x > x1 || mol.y < y0 || mol.y > y1) {
+          mol.x = x0 + Math.random() * (x1 - x0);
+          mol.y = y0 + Math.random() * (y1 - y0);
+        }
+        mol.x += Math.cos(mol.a) * speed;
+        mol.y += Math.sin(mol.a) * speed;
+        if (mol.x <= x0 || mol.x >= x1) mol.a = Math.PI - mol.a;
+        if (mol.y <= y0 || mol.y >= y1) mol.a = -mol.a;
+        mol.x = Math.max(x0, Math.min(x1, mol.x));
+        mol.y = Math.max(y0, Math.min(y1, mol.y));
+        bctx.beginPath();
+        bctx.arc(mol.x, mol.y, 4.4, 0, Math.PI * 2);
+        bctx.fill();
+      }
+      return;
+    }
+
+    const bw = Math.min(L.right - L.left, 260);
+    const bh = Math.min(L.bottom - L.top, 170);
+    const bx = L.left + (L.right - L.left - bw) / 2;
+    const by = L.bottom - bh;
+    bctx.fillStyle = mat === "iron" ? "rgba(120, 113, 108, 0.35)" : "rgba(203, 213, 225, 0.22)";
+    bctx.fillRect(bx, by, bw, bh);
+    bctx.strokeStyle = mat === "iron" ? "#a8a29e" : "#e2e8f0";
+    bctx.lineWidth = 2;
+    bctx.strokeRect(bx, by, bw, bh);
+    const gap = 24;
+    const cols = Math.max(2, Math.floor((bw - 12) / gap));
+    const rows = Math.max(2, Math.floor((bh - 12) / gap));
+    const ox = bx + (bw - (cols - 1) * gap) / 2;
+    const oy = by + (bh - (rows - 1) * gap) / 2;
+    const amp = 2.4 * Math.sqrt((shownT + 273.15) / 293.15);
+    const t = performance.now() / 1000;
+    bctx.fillStyle = COLOR[mat];
+    for (let r = 0; r < rows; r += 1) {
+      for (let cc = 0; cc < cols; cc += 1) {
+        const k = r * cols + cc;
+        const x = ox + cc * gap + Math.sin(t * 13 + k * 2.1) * amp;
+        const y = oy + r * gap + Math.sin(t * 11 + k * 3.7) * amp;
+        bctx.beginPath();
+        bctx.arc(x, y, 5.2, 0, Math.PI * 2);
+        bctx.fill();
+      }
+    }
+  }
+
+  /* ジュールの装置：おもりが下がると糸が羽根車を回し、水をかき混ぜる */
+  function drawJoule() {
+    const w = jouleCanvas.clientWidth || 220;
+    const h = jouleCanvas.clientHeight || 110;
+    fit(jouleCanvas, w, h);
+    jctx.fillStyle = "#0b1220";
+    jctx.fillRect(0, 0, w, h);
+    const u = drop ? Math.min(1, drop.elapsed / 2200) : (jouleDone ? 1 : 0);
+    const ease = u * u;
+    const tankX = w * 0.08;
+    const tankW = w * 0.5;
+    const tankY = h * 0.34;
+    const tankH = h * 0.58;
+    const axisX = tankX + tankW / 2;
+    const pulleyX = w * 0.8;
+    const pulleyY = h * 0.16;
+    const pulleyR = Math.max(6, h * 0.07);
+    const weightW = Math.max(18, w * 0.11);
+    const weightH = Math.max(14, h * 0.15);
+    const weightY = pulleyY + 6 + ease * (h - weightH - pulleyY - 10);
+    const angle = ease * Math.PI * 10;
+
+    jctx.fillStyle = "rgba(56, 189, 248, 0.25)";
+    jctx.fillRect(tankX, tankY + tankH * 0.15, tankW, tankH * 0.85);
+    jctx.strokeStyle = "#9ec5e8";
+    jctx.lineWidth = 2;
+    jctx.strokeRect(tankX, tankY, tankW, tankH);
+
+    jctx.strokeStyle = "#cbd5e1";
+    jctx.lineWidth = 1.5;
+    jctx.beginPath();
+    jctx.moveTo(axisX, tankY + tankH * 0.9);
+    jctx.lineTo(axisX, pulleyY);
+    jctx.lineTo(pulleyX - pulleyR, pulleyY);
+    jctx.stroke();
+    jctx.beginPath();
+    jctx.arc(pulleyX, pulleyY, pulleyR, 0, Math.PI * 2);
+    jctx.stroke();
+    jctx.beginPath();
+    jctx.moveTo(pulleyX + pulleyR, pulleyY);
+    jctx.lineTo(pulleyX + pulleyR, weightY);
+    jctx.stroke();
+    jctx.fillStyle = "#94a3b8";
+    jctx.fillRect(pulleyX + pulleyR - weightW / 2, weightY, weightW, weightH);
+
+    jctx.strokeStyle = "#e7c27a";
+    jctx.lineWidth = 3;
+    const bladeY = tankY + tankH * 0.62;
+    const bladeL = tankW * 0.36;
+    for (let i = 0; i < 4; i += 1) {
+      const a = angle + (Math.PI / 2) * i;
+      jctx.beginPath();
+      jctx.moveTo(axisX, bladeY);
+      jctx.lineTo(axisX + Math.cos(a) * bladeL, bladeY + Math.sin(a) * bladeL * 0.25);
+      jctx.stroke();
+    }
+
+    jctx.fillStyle = "rgba(147, 221, 253, 0.95)";
+    const jiggle = 1 + ease * 3;
+    const now = performance.now() / 1000;
+    for (let i = 0; i < 10; i += 1) {
+      const px = tankX + tankW * (0.12 + 0.19 * (i % 5));
+      const py = tankY + tankH * (i < 5 ? 0.35 : 0.82);
+      jctx.beginPath();
+      jctx.arc(px + Math.sin(now * 9 * jiggle + i * 2.3) * jiggle, py + Math.cos(now * 8 * jiggle + i * 1.7) * jiggle, 2.8, 0, Math.PI * 2);
+      jctx.fill();
+    }
+  }
+
+  function finishHeat(v) {
+    shownT = START + v.dt;
+    targetT = shownT;
+    hud.textContent = NAME[mat] + "　" + shownT.toFixed(1) + " ℃";
+    if (mode === "Q") {
+      formula.textContent = "Q ＝ " + v.m + " × " + C_TEXT[mat] + " × " + fmt(v.dt) + " ＝ " + fmt(v.q) + " J";
+    } else {
+      formula.textContent = "Δt ＝ " + v.q + " ÷（" + v.m + " × " + C_TEXT[mat] + "）＝ " + fmt(v.dt) + " ℃";
+    }
+    heatAnim = null;
+  }
+
+  let last = 0;
+  let loopOn = false;
+
+  function frame(now) {
+    if (document.hidden) { loopOn = false; return; }
+    if (!last) last = now;
+    let dt = now - last;
+    last = now;
+    if (dt > 80) dt = 80;
+    if (heatAnim) {
+      heatAnim.elapsed += dt;
+      const u = Math.min(1, heatAnim.elapsed / 1600);
+      shownT = START + (targetT - START) * u;
+      hud.textContent = NAME[mat] + "　" + shownT.toFixed(1) + " ℃";
+      if (u >= 1) finishHeat(heatAnim.values);
+    }
+    if (drop) {
+      drop.elapsed += dt;
+      if (drop.elapsed >= 2200) {
+        drop = null;
+        jouleDone = true;
+        jouleText.textContent = "おもりがした仕事で、水の温度が上がりました。仕事の単位も、熱の単位も J です。";
+      }
+    }
+    drawBeaker();
+    drawJoule();
+    requestAnimationFrame(frame);
+  }
+
+  function startLoop() {
+    if (loopOn || document.hidden) return;
+    loopOn = true;
+    last = 0;
+    requestAnimationFrame(frame);
+  }
+
+  document.getElementById("waterBtn").addEventListener("click", function () { setMat("water"); });
+  document.getElementById("ironBtn").addEventListener("click", function () { setMat("iron"); });
+  document.getElementById("alBtn").addEventListener("click", function () { setMat("al"); });
+  document.getElementById("modeQ").addEventListener("click", function () { setMode("Q"); });
+  document.getElementById("modeDt").addEventListener("click", function () { setMode("dt"); });
+  massSlider.addEventListener("input", clearHeat);
+  dtSlider.addEventListener("input", clearHeat);
+  qSlider.addEventListener("input", clearHeat);
+  document.getElementById("resetBtn").addEventListener("click", clearHeat);
+  document.getElementById("heatBtn").addEventListener("click", function () {
+    const v = values();
+    targetT = START + v.dt;
+    heatAnim = { elapsed: 0, values: v };
+  });
+  document.getElementById("dropBtn").addEventListener("click", function () {
+    drop = { elapsed: 0 };
+    jouleDone = false;
+    jouleText.textContent = "おもりが落ちています。";
+  });
+
+  let resizeTimer = 0;
+  window.addEventListener("resize", function () {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(function () { box.w = 0; rebuild(); }, 80);
+  });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) startLoop(); });
+
+  paintFormula();
+  hud.textContent = "水　20.0 ℃";
+  loopOn = true;
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

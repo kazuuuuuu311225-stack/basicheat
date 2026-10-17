@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d4e89">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>第5時　状態変化と温度</title>
+<style>
+  :root {
+    --blue: #1d4e89;
+    --ink: #1c2430;
+    --line: #c5ced8;
+    --paper: #f4f7fb;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    overscroll-behavior: none;
+    font-family: "Yu Gothic", "游ゴシック", Meiryo, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    padding:
+      env(safe-area-inset-top)
+      env(safe-area-inset-right)
+      env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+    -webkit-text-size-adjust: 100%;
+  }
+  header { padding: 8px 12px 0; }
+  .kicker { margin: 0; color: var(--blue); font-weight: 700; font-size: 0.95rem; }
+  h1 { margin: 1px 0 2px; font-size: 1.25rem; }
+  .lead { margin: 0; line-height: 1.4; font-size: 0.95rem; }
+  .controls, .fixed {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px 0;
+  }
+  button {
+    font-family: inherit;
+    font-size: 16px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  button.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .chip {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+  }
+  .now { margin-left: auto; font-weight: 700; color: var(--blue); }
+  .main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    gap: 10px;
+    padding: 8px 12px 12px;
+  }
+  .stage {
+    flex: 1.4;
+    min-width: 0;
+    min-height: 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .graph-title { margin: 0; padding: 8px 12px 0; color: var(--blue); font-weight: 700; }
+  .canvas-wrap { flex: 1; min-height: 0; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .side { flex: 0.9; min-width: 240px; max-width: 420px; display: flex; flex-direction: column; gap: 8px; }
+  .card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 8px 12px;
+  }
+  .card .name { color: var(--blue); font-weight: 700; }
+  .card .val { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .bar { height: 10px; background: #e8f0f8; border-radius: 999px; overflow: hidden; margin-top: 6px; }
+  .bar > div { height: 100%; width: 0; background: var(--blue); transition: width 0.12s linear; }
+  .scene { padding: 6px 8px; display: flex; flex-direction: column; }
+  .scene canvas { height: clamp(110px, 18vh, 170px); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; background: #fff; border-radius: 12px; overflow: hidden; }
+  th, td { border-bottom: 1px solid var(--line); padding: 6px; text-align: center; }
+  th { background: #e8f0f8; color: var(--blue); }
+  @media (max-width: 800px) {
+    .main { flex-direction: column; }
+    .stage { min-height: 240px; }
+    .side {
+      max-width: none;
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .side table { grid-column: 1 / -1; }
+    .scene { display: none; }
+    .card { padding: 6px 8px; }
+    .card .val { font-size: 1.05rem; }
+  }
+  .side { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  @media (max-height: 560px) {
+    .scene { display: none; }
+    .kicker, .lead { display: none; }
+    h1 { font-size: 1rem; margin: 0; }
+  }
+  [hidden] { display: none !important; }
+  .latent .stack {
+    display: flex;
+    height: 16px;
+    margin: 6px 0 4px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #e8f0f8;
+  }
+  .latent .stack > div { height: 100%; width: 0; transition: width 0.12s linear; }
+  .sens { background: #f59e0b; }
+  .melt { background: #38bdf8; }
+  .boil { background: #a855f7; }
+  .lrows { margin: 0; display: grid; gap: 0; line-height: 1.35; }
+  .lrows > div { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .lrows dt { display: flex; align-items: center; gap: 6px; font-size: 0.95rem; }
+  .lrows dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 1.05rem; }
+  .lrows .total { border-top: 1px solid #d6dfe9; margin-top: 4px; padding-top: 4px; }
+  .lrows .total dd { color: #1d4e89; }
+  .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .latent .note { margin: 4px 0 0; color: #5c6b7a; font-size: 0.8rem; }
+  @media (max-width: 800px) {
+    .latent { grid-column: 1 / -1; }
+    body { height: auto; overflow-y: auto; }
+    .stage { flex: 0 0 280px; }
+  }
+  /* ===== 画面デザイン（全時間共通） ===== */
+  :root {
+    --blue: #1d4e89;
+    --blue-2: #2b6cb0;
+    --ink: #1c2430;
+    --muted: #5c6b7a;
+    --line: #d6dfe9;
+    --paper: #eef3f9;
+    --accent: #ea580c;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(16, 40, 80, 0.06), 0 6px 18px rgba(16, 40, 80, 0.08);
+  }
+  body { background: linear-gradient(180deg, #e6eef8 0%, #f4f7fb 280px); }
+  header {
+    margin: 0;
+    padding: 10px 16px 12px;
+    background: linear-gradient(120deg, #143a68 0%, #1d4e89 55%, #2b6cb0 100%);
+    color: #fff;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 14px;
+    align-items: center;
+    box-shadow: 0 2px 12px rgba(16, 40, 80, 0.2);
+  }
+  header .kicker {
+    grid-row: 1 / 3;
+    margin: 0;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  header h1 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.25rem, 2.4vw, 1.65rem);
+    letter-spacing: 0.04em;
+    line-height: 1.25;
+  }
+  header .lead {
+    margin: 3px 0 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: clamp(0.9rem, 1.5vw, 1rem);
+    line-height: 1.45;
+  }
+
+  .controls { padding: 10px 12px 0; gap: 10px; }
+  .group {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .glabel {
+    flex: 0 0 auto;
+    padding: 0 6px 0 8px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .group { flex-wrap: wrap; }
+  .group button { flex: 1 1 0; min-width: max-content; box-shadow: none; }
+
+  button {
+    font-size: 17px;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(16, 40, 80, 0.08);
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s, transform 0.08s;
+  }
+  button:hover:not(:disabled) { border-color: #9fb6d0; }
+  button:active:not(:disabled) { transform: translateY(1px) scale(0.985); }
+  button:focus-visible { outline: 3px solid rgba(43, 108, 176, 0.45); outline-offset: 2px; }
+  button.active {
+    background: linear-gradient(180deg, #2b6cb0, #1d4e89);
+    border-color: #1d4e89;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(29, 78, 137, 0.35);
+  }
+  button.primary {
+    background: linear-gradient(180deg, #fb8a3c, #ea580c);
+    border-color: #d9530a;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
+  }
+  button.primary:hover:not(:disabled) { border-color: #c2410c; }
+  button.ghost { background: #f4f7fb; color: var(--muted); box-shadow: none; }
+  button:disabled { opacity: 0.45; cursor: default; }
+
+  button.toggle {
+    position: relative;
+    padding-left: 58px;
+    padding-right: 10px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 16px;
+  }
+  button.toggle::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    width: 38px;
+    height: 22px;
+    margin-top: -11px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    transition: background 0.15s;
+  }
+  button.toggle::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    margin-top: -9px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: left 0.15s;
+  }
+  button.toggle.active {
+    background: #fff;
+    color: var(--ink);
+    border-color: #86b7e8;
+    box-shadow: none;
+  }
+  button.toggle.active::before { background: #22c55e; }
+  button.toggle.active::after { left: 30px; }
+
+  .slider {
+    width: auto;
+    margin: 10px 12px 0;
+    padding: 2px 8px 2px 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .sliders { padding: 10px 12px 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; }
+  .sliders .slider { margin: 0; }
+  .slider input::-webkit-slider-runnable-track {
+    height: 10px;
+    background: linear-gradient(90deg, #bcd3ea, #1d4e89);
+    border-radius: 999px;
+  }
+  .slider input::-moz-range-track {
+    height: 10px;
+    background: linear-gradient(90deg, #bcd3ea, #1d4e89);
+    border-radius: 999px;
+  }
+  .slider input.hot::-webkit-slider-runnable-track { background: linear-gradient(90deg, #38bdf8, #a78bfa 50%, #f87171); }
+  .slider input.hot::-moz-range-track { background: linear-gradient(90deg, #38bdf8, #a78bfa 50%, #f87171); }
+  .slider input::-webkit-slider-thumb {
+    width: 30px;
+    height: 30px;
+    margin-top: -10px;
+    background: #fff;
+    border: 3px solid #1d4e89;
+    box-shadow: 0 2px 6px rgba(16, 40, 80, 0.3);
+  }
+  .slider input::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: #fff;
+    border: 3px solid #1d4e89;
+    box-shadow: 0 2px 6px rgba(16, 40, 80, 0.3);
+  }
+  .slider .read, .read {
+    min-width: 5.6em;
+    padding: 6px 10px;
+    text-align: center;
+    color: var(--blue);
+    background: #f1f6fc;
+    border-radius: 10px;
+    font-size: 17px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .ends { padding: 4px 18px 0; }
+
+  .stage, .card, .chip, .table-wrap, .result, .heat, .graph, .obj {
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .stage { border: 1px solid rgba(15, 30, 60, 0.12); }
+  body > .stage { margin-top: 10px; }
+  .card, .chip, .table-wrap, .result, .heat, .graph { border-color: var(--line); }
+  .card .name, .graph-title, .graph .title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--blue);
+    font-weight: 700;
+  }
+  .card .name::before, .graph-title::before, .graph .title::before {
+    content: "";
+    width: 4px;
+    height: 1em;
+    border-radius: 2px;
+    background: var(--blue-2);
+  }
+  .chip { font-weight: 600; }
+  .chip.now {
+    font-size: 1.15rem;
+    color: var(--blue);
+    background: linear-gradient(180deg, #fff, #eef5fd);
+    border-color: #a9c6e6;
+  }
+  table { font-variant-numeric: tabular-nums; }
+  th { background: #eaf1f9; color: var(--blue); font-size: 0.9rem; letter-spacing: 0.02em; }
+  tbody tr:nth-child(even) td { background: #f8fafd; }
+
+  .hud {
+    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    font-weight: 700;
+    color: #f1f7ff;
+    background: rgba(10, 20, 36, 0.62);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(158, 197, 232, 0.28);
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .legend {
+    background: #0f1a2e;
+    border-top: 1px solid rgba(158, 197, 232, 0.14);
+    gap: 10px;
+    font-size: 0.95rem;
+  }
+  .legend span {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  @media (max-width: 900px), (max-height: 560px) {
+    .glabel { display: none; }
+    .group { gap: 4px; padding: 4px; }
+    button.toggle { padding-left: 12px; padding-right: 12px; text-align: center; }
+    button.toggle::before, button.toggle::after { display: none; }
+    button.toggle.active { background: #ecfdf3; border-color: #22c55e; color: #166534; }
+  }
+  @media (max-width: 600px) {
+    header { grid-template-columns: 1fr; padding: 8px 12px 10px; }
+    header .kicker { grid-row: auto; justify-self: start; padding: 3px 10px; margin-bottom: 4px; }
+    .glabel { display: none; }
+  }
+  @media (max-height: 560px) {
+    header { padding: 6px 12px; }
+    header h1 { font-size: 1.05rem; }
+    .controls { padding-top: 6px; }
+    .slider { margin-top: 6px; }
+    body > .stage { margin-top: 6px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <p class="kicker">物理基礎　熱　第5時</p>
+  <h1>状態変化と温度</h1>
+  <p class="lead">見るグラフは「時間–温度」です。加熱は2回で止めます。100％まで待ちません。</p>
+</header>
+<div class="controls">
+  <div class="group narrow">
+    <span class="glabel">はじめ</span>
+    <button type="button" id="iceBtn" class="active">氷 −10 ℃</button>
+    <button type="button" id="hotBtn">水 95 ℃</button>
+  </div>
+  <div class="group narrow">
+    <span class="glabel">操作</span>
+    <button type="button" id="heatBtn" class="primary">加熱（10000 J）</button>
+    <button type="button" id="resetBtn" class="ghost">リセット</button>
+  </div>
+  <div class="group narrow">
+    <span class="glabel">まとめ</span>
+    <button type="button" id="latentBtn" class="toggle">潜熱まとめ　オフ</button>
+  </div>
+</div>
+<div class="fixed">
+  <span class="chip">質量 100 g</span>
+  <span class="chip">加熱 10000 J</span>
+  <span class="chip now" id="nowRead">いま −10.00 ℃</span>
+</div>
+<div class="main">
+  <section class="stage">
+    <p class="graph-title">時間–温度</p>
+    <div class="canvas-wrap">
+      <canvas id="view" aria-label="時間と温度のグラフ"></canvas>
+    </div>
+  </section>
+  <div class="side">
+    <div class="card scene">
+      <div class="name">様子</div>
+      <canvas id="scene" aria-label="ビーカーの中の様子"></canvas>
+    </div>
+    <div class="card">
+      <div class="name">状態</div>
+      <div class="val" id="phaseRead">固体（氷）</div>
+    </div>
+    <div class="card" id="deltaCard">
+      <div class="name">今回の ΔT</div>
+      <div class="val" id="deltaRead">—</div>
+    </div>
+    <div class="card" id="qSumCard">
+      <div class="name">加えた熱量の合計</div>
+      <div class="val" id="qSumRead">0 J</div>
+    </div>
+    <div class="card latent" id="latentCard" hidden>
+      <div class="name">加えた熱量の使われ方</div>
+      <div class="stack"><div id="segSens" class="sens"></div><div id="segMelt" class="melt"></div><div id="segBoil" class="boil"></div></div>
+      <dl class="lrows">
+        <div><dt><i class="sw sens"></i>温度を上げる</dt><dd id="qSens">0 J</dd></div>
+        <div><dt><i class="sw melt"></i>融解（融解熱）</dt><dd id="qMelt">0 J</dd></div>
+        <div><dt><i class="sw boil"></i>沸騰（蒸発熱）</dt><dd id="qBoil">0 J</dd></div>
+        <div class="total"><dt>加えた熱量の合計</dt><dd id="qTotal">0 J</dd></div>
+      </dl>
+      <p class="note">1 g あたり　融解 334 J、蒸発 2260 J（質量 100 g）</p>
+    </div>
+    <div class="card">
+      <div class="name">進み</div>
+      <div class="val" id="progRead">—</div>
+      <div class="bar"><div id="progBar"></div></div>
+    </div>
+    <table id="logTable">
+      <thead>
+        <tr><th>回</th><th>加えた熱量（J）</th><th>温度（℃）</th><th>状態</th><th>今回の ΔT</th><th>進み</th></tr>
+      </thead>
+      <tbody id="log"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+(function () {
+  const MASS = 100;
+  const HEAT = 10000;
+  const C_SOLID = 21 / 10;
+  const C_LIQUID = 42 / 10;
+  const LF = 334;
+  const LV = 2260;
+  const RUN_MS = 4500;
+  const LIMIT = 2;
+
+  const canvas = document.getElementById("view");
+  const ctx = canvas.getContext("2d");
+  const iceBtn = document.getElementById("iceBtn");
+  const hotBtn = document.getElementById("hotBtn");
+  const heatBtn = document.getElementById("heatBtn");
+  const nowRead = document.getElementById("nowRead");
+  const phaseRead = document.getElementById("phaseRead");
+  const deltaRead = document.getElementById("deltaRead");
+  const progRead = document.getElementById("progRead");
+  const progBar = document.getElementById("progBar");
+  const log = document.getElementById("log");
+  const latentBtn = document.getElementById("latentBtn");
+  const latentCard = document.getElementById("latentCard");
+  const deltaCard = document.getElementById("deltaCard");
+  const qSumCard = document.getElementById("qSumCard");
+  const qSumRead = document.getElementById("qSumRead");
+  const logTable = document.getElementById("logTable");
+  const segEls = {
+    sens: document.getElementById("segSens"),
+    melt: document.getElementById("segMelt"),
+    boil: document.getElementById("segBoil")
+  };
+  const qEls = {
+    sens: document.getElementById("qSens"),
+    melt: document.getElementById("qMelt"),
+    boil: document.getElementById("qBoil"),
+    total: document.getElementById("qTotal")
+  };
+  const POWER = 10000;
+  const LATENT_XMAX = 32;
+  let latent = false;
+  let cont = null;
+
+  const PRESETS = {
+    ice: { temp: -10, phase: "solid", liq: 0, gas: 0 },
+    hot: { temp: 95, phase: "liquid", liq: 1, gas: 0 }
+  };
+  const PHASE_NAME = {
+    solid: "固体（氷）",
+    liquid: "液体（水）",
+    gas: "気体（水蒸気）",
+    melting: "融解中",
+    boiling: "沸騰中"
+  };
+
+  let preset = "ice";
+  let temp = -10;
+  let phase = "solid";
+  let liq = 0;
+  let gas = 0;
+  let clicks = 0;
+  let simTime = 0;
+  let points = [{ t: 0, y: -10 }];
+  let running = null;
+
+  function fmtTemp(v) {
+    const body = Math.abs(v).toFixed(2);
+    return (v < 0 ? "−" : "") + body;
+  }
+
+  function forecast(qAdd) {
+    let t = temp;
+    let p = phase;
+    let l = liq;
+    let g = gas;
+    let left = qAdd;
+    const segs = [];
+    if (p === "solid" && left > 0) {
+      const need = MASS * C_SOLID * (0 - t);
+      const use = Math.min(left, Math.max(0, need));
+      if (use > 0) {
+        const t2 = t + use / (MASS * C_SOLID);
+        segs.push({ type: "rise", t0: t, t1: t2, q: use });
+        t = t2;
+        left -= use;
+      }
+      if (left > 0) { t = 0; p = "melting"; }
+    }
+    if (p === "melting" && left > 0) {
+      const need = MASS * LF * (1 - l);
+      const use = Math.min(left, Math.max(0, need));
+      if (use > 0) {
+        const l2 = l + use / (MASS * LF);
+        segs.push({ type: "flat", y: 0, a: l, b: l2, q: use, kind: "melt" });
+        l = l2;
+        left -= use;
+      }
+      if (l >= 1 - 1e-9) { l = 1; p = "liquid"; t = 0; }
+    }
+    if (p === "liquid" && left > 0) {
+      const need = MASS * C_LIQUID * (100 - t);
+      const use = Math.min(left, Math.max(0, need));
+      if (use > 0) {
+        const t2 = t + use / (MASS * C_LIQUID);
+        segs.push({ type: "rise", t0: t, t1: t2, q: use });
+        t = t2;
+        left -= use;
+      }
+      if (left > 0) { t = 100; p = "boiling"; }
+    }
+    if (p === "boiling" && left > 0) {
+      const need = MASS * LV * (1 - g);
+      const use = Math.min(left, Math.max(0, need));
+      if (use > 0) {
+        const g2 = g + use / (MASS * LV);
+        segs.push({ type: "flat", y: 100, a: g, b: g2, q: use, kind: "boil" });
+        g = g2;
+        left -= use;
+      }
+      if (g >= 1 - 1e-9) { g = 1; p = "gas"; t = 100; }
+    }
+    return { segs: segs, t: t, phase: p, liq: l, gas: g };
+  }
+
+  function sample(plan, elapsed) {
+    const qTotal = plan.segs.reduce(function (sum, seg) { return sum + seg.q; }, 0);
+    let q = qTotal * Math.min(1, elapsed / RUN_MS);
+    let y = plan.segs.length ? (plan.segs[0].type === "rise" ? plan.segs[0].t0 : plan.segs[0].y) : temp;
+    let l = liq;
+    let g = gas;
+    let p = phase;
+    for (let i = 0; i < plan.segs.length; i += 1) {
+      const seg = plan.segs[i];
+      const use = Math.min(seg.q, q);
+      const u = seg.q > 0 ? use / seg.q : 1;
+      if (seg.type === "rise") y = seg.t0 + (seg.t1 - seg.t0) * u;
+      else {
+        y = seg.y;
+        if (seg.kind === "melt") l = seg.a + (seg.b - seg.a) * u;
+        if (seg.kind === "boil") g = seg.a + (seg.b - seg.a) * u;
+      }
+      q -= use;
+      if (q <= 0) break;
+    }
+    if (l > 0 && l < 1) p = "melting";
+    else if (g > 0 && g < 1) p = "boiling";
+    else if (y < 0) p = "solid";
+    else if (y < 100) p = "liquid";
+    else p = g >= 1 ? "gas" : "boiling";
+    return { y: y, phase: p, liq: l, gas: g };
+  }
+
+  function progressText(p, l, g) {
+    if (p === "melting") return (l * 100).toFixed(0) + "％";
+    if (p === "boiling") return (g * 100).toFixed(0) + "％";
+    return "—";
+  }
+
+  function deltaText(from, to, p) {
+    if (Math.abs(to - from) <= 0.001 && (p === "melting" || p === "boiling")) return "0 ℃（変わらない）";
+    const d = to - from;
+    const body = Math.abs(d).toFixed(2);
+    return (d < 0 ? "−" : "") + body + " ℃";
+  }
+
+  function renderReadout(dText, pText, bar) {
+    nowRead.textContent = "いま " + fmtTemp(temp) + " ℃";
+    phaseRead.textContent = PHASE_NAME[phase];
+    deltaRead.textContent = dText;
+    progRead.textContent = pText;
+    qSumRead.textContent = HEAT * clicks + " J";
+    progBar.style.width = (bar == null ? 0 : bar) + "%";
+  }
+
+  function renderTable(rows) {
+    let html = "";
+    for (let i = 0; i < LIMIT; i += 1) {
+      const row = rows[i];
+      html += "<tr><td>" + (i + 1) + "</td><td>" + (row ? HEAT * (i + 1) : "") + "</td><td>" + (row ? row.temp : "") + "</td><td>" + (row ? row.phase : "") + "</td><td>" + (row ? row.delta : "") + "</td><td>" + (row ? row.prog : "") + "</td></tr>";
+    }
+    log.innerHTML = html;
+    updateHeatBtn();
+  }
+
+  function updateHeatBtn() {
+    if (latent) {
+      const finished = phase === "gas";
+      heatBtn.disabled = finished;
+      if (finished) heatBtn.textContent = "すべて水蒸気";
+      else if (cont && cont.on) heatBtn.textContent = "一時停止";
+      else heatBtn.textContent = simTime > 0 ? "再開" : "連続加熱（−10 ℃ → 水蒸気）";
+      return;
+    }
+    const done = clicks >= LIMIT;
+    heatBtn.disabled = done || !!running;
+    heatBtn.textContent = done ? "2回で止める" : (running ? "加熱中" : "加熱（10000 J）");
+  }
+
+  function heatingNow() {
+    return !!running || !!(cont && cont.on);
+  }
+
+  function newCont() {
+    return { on: false, sens: 0, melt: 0, boil: 0, meltStart: null, meltEnd: null, boilStart: null, boilEnd: null, lastSample: 0 };
+  }
+
+  /* 一定の割合で加えた熱量を、いまの状態に応じて「温度上昇」「融解」「沸騰」に振り分ける */
+  function addHeat(dq) {
+    let left = dq;
+    let guard = 0;
+    while (left > 1e-9 && guard < 8) {
+      guard += 1;
+      if (phase === "solid") {
+        const use = Math.min(left, MASS * C_SOLID * (0 - temp));
+        temp += use / (MASS * C_SOLID);
+        cont.sens += use;
+        left -= use;
+        if (temp >= -1e-9) { temp = 0; phase = "melting"; cont.meltStart = simTime; }
+      } else if (phase === "melting") {
+        const use = Math.min(left, MASS * LF * (1 - liq));
+        liq += use / (MASS * LF);
+        cont.melt += use;
+        left -= use;
+        if (liq >= 1 - 1e-9) { liq = 1; phase = "liquid"; cont.meltEnd = simTime; }
+      } else if (phase === "liquid") {
+        const use = Math.min(left, MASS * C_LIQUID * (100 - temp));
+        temp += use / (MASS * C_LIQUID);
+        cont.sens += use;
+        left -= use;
+        if (temp >= 100 - 1e-9) { temp = 100; phase = "boiling"; cont.boilStart = simTime; }
+      } else if (phase === "boiling") {
+        const use = Math.min(left, MASS * LV * (1 - gas));
+        gas += use / (MASS * LV);
+        cont.boil += use;
+        left -= use;
+        if (gas >= 1 - 1e-9) { gas = 1; phase = "gas"; cont.boilEnd = simTime; }
+      } else {
+        break;
+      }
+    }
+  }
+
+  function fmtJ(v) {
+    return Math.round(v).toLocaleString("ja-JP") + " J";
+  }
+
+  function renderLatent() {
+    if (!cont) return;
+    const total = cont.sens + cont.melt + cont.boil;
+    ["sens", "melt", "boil"].forEach(function (key) {
+      qEls[key].textContent = fmtJ(cont[key]);
+      segEls[key].style.width = (total > 0 ? (cont[key] / total) * 100 : 0) + "%";
+    });
+    qEls.total.textContent = fmtJ(total);
+  }
+
+  function setLatent(on) {
+    latent = on;
+    latentBtn.classList.toggle("active", on);
+    latentBtn.textContent = on ? "潜熱まとめ　オン" : "潜熱まとめ　オフ";
+    hotBtn.disabled = on;
+    deltaCard.hidden = on;
+    qSumCard.hidden = on;
+    logTable.hidden = on;
+    latentCard.hidden = !on;
+    applyPreset("ice");
+  }
+
+  let rows = [];
+
+  function draw() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(240, Math.floor(canvas.clientWidth));
+    const h = Math.max(120, Math.floor(canvas.clientHeight));
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, w, h);
+    const padL = 48;
+    const padR = 16;
+    const padT = 36;
+    const padB = 36;
+    const plotW = Math.max(40, w - padL - padR);
+    const plotH = Math.max(40, h - padT - padB);
+    const yMin = -20;
+    const yMax = 120;
+    const xMax = latent ? LATENT_XMAX : Math.max(12, simTime + 1);
+    const xStep = xMax > 16 ? 4 : 2;
+    function xOf(t) { return padL + (t / xMax) * plotW; }
+    function yOf(y) { return padT + (1 - (y - yMin) / (yMax - yMin)) * plotH; }
+    ctx.font = "13px 'Yu Gothic', Meiryo, sans-serif";
+    ctx.strokeStyle = "#e8f0f8";
+    ctx.fillStyle = "#5c6b7a";
+    ctx.lineWidth = 1;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    for (let y = -20; y <= 120; y += 20) {
+      const py = yOf(y);
+      ctx.beginPath();
+      ctx.moveTo(padL, py);
+      ctx.lineTo(padL + plotW, py);
+      ctx.stroke();
+      ctx.fillText(String(y), padL - 6, py);
+    }
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    for (let t = 0; t <= xMax; t += xStep) {
+      const px = xOf(t);
+      ctx.fillText(String(t), px, padT + plotH + 6);
+    }
+    if (latent && cont) {
+      const band = function (a, b, fill, ink, label) {
+        if (a == null) return;
+        const end = b == null ? simTime : b;
+        const x0 = xOf(a);
+        const x1 = xOf(end);
+        ctx.fillStyle = fill;
+        ctx.fillRect(x0, padT, Math.max(1, x1 - x0), plotH);
+        if (x1 - x0 > 40) {
+          ctx.fillStyle = ink;
+          ctx.font = "bold 14px 'Yu Gothic', Meiryo, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+          ctx.fillText(label, (x0 + x1) / 2, padT + 6);
+          ctx.font = "13px 'Yu Gothic', Meiryo, sans-serif";
+        }
+      };
+      band(cont.meltStart, cont.meltEnd, "rgba(56, 189, 248, 0.16)", "#0369a1", "融解熱");
+      band(cont.boilStart, cont.boilEnd, "rgba(168, 85, 247, 0.14)", "#7e22ce", "蒸発熱");
+    }
+    ctx.strokeStyle = "#1c2430";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, padT + plotH);
+    ctx.lineTo(padL + plotW, padT + plotH);
+    ctx.stroke();
+    ctx.fillStyle = "#1d4e89";
+    ctx.fillText("時間（s）", padL + plotW / 2, h - 14);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "bottom";
+    ctx.fillText("温度（℃）", padL - 40, padT - 6);
+    if (points.length > 1) {
+      ctx.beginPath();
+      ctx.strokeStyle = "#1d4e89";
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = "round";
+      points.forEach(function (p, i) {
+        const x = xOf(p.t);
+        const y = yOf(p.y);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+    const last = points[points.length - 1];
+    ctx.beginPath();
+    ctx.arc(xOf(last.t), yOf(last.y), 5, 0, Math.PI * 2);
+    ctx.fillStyle = heatingNow() ? "#f97316" : "#1d4e89";
+    ctx.fill();
+  }
+
+  const sceneCanvas = document.getElementById("scene");
+  const sctx = sceneCanvas.getContext("2d");
+  let bubbles = [];
+
+  function drawScene() {
+    if (!sceneCanvas.clientWidth) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.floor(sceneCanvas.clientWidth);
+    const h = Math.floor(sceneCanvas.clientHeight);
+    if (sceneCanvas.width !== Math.floor(w * dpr) || sceneCanvas.height !== Math.floor(h * dpr)) {
+      sceneCanvas.width = Math.floor(w * dpr);
+      sceneCanvas.height = Math.floor(h * dpr);
+    }
+    sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sctx.fillStyle = "#f8fbff";
+    sctx.fillRect(0, 0, w, h);
+
+    const bw = Math.min(150, w * 0.5);
+    const bx = (w - bw) / 2;
+    const flameH = 18;
+    const bottom = h - flameH - 10;
+    const top = 14;
+    const inner = bottom - top;
+    const heating = heatingNow();
+
+    if (heating) {
+      const n = 5;
+      for (let i = 0; i < n; i += 1) {
+        const fx = bx + bw * ((i + 0.5) / n);
+        const flick = 0.75 + 0.25 * Math.sin(performance.now() / 90 + i * 1.7);
+        sctx.beginPath();
+        sctx.moveTo(fx - 6, h - 4);
+        sctx.quadraticCurveTo(fx, h - 4 - flameH * 1.6 * flick, fx + 6, h - 4);
+        sctx.fillStyle = "rgba(249, 115, 22, 0.85)";
+        sctx.fill();
+        sctx.beginPath();
+        sctx.moveTo(fx - 3, h - 4);
+        sctx.quadraticCurveTo(fx, h - 4 - flameH * 0.9 * flick, fx + 3, h - 4);
+        sctx.fillStyle = "rgba(253, 224, 71, 0.95)";
+        sctx.fill();
+      }
+    }
+
+    const fullLevel = inner * 0.62;
+    const waterH = fullLevel * liquidAmount();
+    const surface = bottom - waterH;
+    if (waterH > 0) {
+      const g = sctx.createLinearGradient(0, surface, 0, bottom);
+      g.addColorStop(0, "rgba(125, 211, 252, 0.75)");
+      g.addColorStop(1, "rgba(29, 78, 137, 0.55)");
+      sctx.fillStyle = g;
+      sctx.fillRect(bx, surface, bw, waterH);
+    }
+
+    const iceLeft = phase === "solid" ? 1 : (phase === "melting" ? 1 - liq : 0);
+    if (iceLeft > 0) {
+      const side = 34 * Math.cbrt(iceLeft);
+      const baseY = waterH > side * 0.8 ? surface - side * 0.15 : bottom - side;
+      const xs = [bx + bw * 0.22, bx + bw * 0.5, bx + bw * 0.78];
+      for (let i = 0; i < xs.length; i += 1) {
+        const y = baseY - (i === 1 ? side * 0.55 : 0);
+        sctx.save();
+        sctx.translate(xs[i], y + side / 2);
+        sctx.rotate((i - 1) * 0.18);
+        sctx.fillStyle = "rgba(224, 242, 254, 0.95)";
+        sctx.strokeStyle = "rgba(96, 165, 250, 0.9)";
+        sctx.lineWidth = 1.5;
+        sctx.fillRect(-side / 2, -side / 2, side, side);
+        sctx.strokeRect(-side / 2, -side / 2, side, side);
+        sctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+        sctx.fillRect(-side / 2 + 3, -side / 2 + 3, side * 0.3, side * 0.18);
+        sctx.restore();
+      }
+    }
+
+    const boilingNow = phase === "boiling" && heating;
+    if (boilingNow && waterH > 4 && Math.random() < 0.6) {
+      bubbles.push({ x: bx + 8 + Math.random() * (bw - 16), y: bottom - 3, r: 1.5 + Math.random() * 2.5 });
+    }
+    sctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+    sctx.lineWidth = 1.2;
+    bubbles = bubbles.filter(function (b) {
+      b.y -= 1.2 + b.r * 0.4;
+      b.r += 0.03;
+      if (b.y < surface + b.r) return false;
+      sctx.beginPath();
+      sctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      sctx.stroke();
+      return true;
+    });
+    if (!boilingNow && !heating) bubbles = [];
+
+    if (phase === "boiling" || phase === "gas") {
+      const t = performance.now() / 600;
+      sctx.strokeStyle = "rgba(148, 163, 184, 0.7)";
+      sctx.lineWidth = 3;
+      sctx.lineCap = "round";
+      for (let i = 0; i < 3; i += 1) {
+        const sx = bx + bw * (0.3 + 0.2 * i);
+        sctx.beginPath();
+        for (let k = 0; k <= 12; k += 1) {
+          const y = surface - 4 - k * 4;
+          const x = sx + Math.sin(t * (heating ? 3 : 1) + k * 0.6 + i) * 4;
+          if (k === 0) sctx.moveTo(x, y);
+          else sctx.lineTo(x, y);
+        }
+        sctx.stroke();
+      }
+    }
+
+    sctx.strokeStyle = "#5c6b7a";
+    sctx.lineWidth = 2.5;
+    sctx.lineJoin = "round";
+    sctx.beginPath();
+    sctx.moveTo(bx - 4, top);
+    sctx.lineTo(bx, top + 4);
+    sctx.lineTo(bx, bottom);
+    sctx.lineTo(bx + bw, bottom);
+    sctx.lineTo(bx + bw, top + 4);
+    sctx.stroke();
+  }
+
+  function liquidAmount() {
+    if (phase === "solid") return 0;
+    if (phase === "melting") return liq;
+    if (phase === "boiling") return 1 - gas;
+    if (phase === "gas") return 0;
+    return 1;
+  }
+
+  function showIdle() {
+    const bar = phase === "melting" ? liq * 100 : (phase === "boiling" ? gas * 100 : null);
+    renderReadout(clicks === 0 ? "—" : deltaRead.textContent, progressText(phase, liq, gas), bar);
+    renderTable(rows);
+    draw();
+  }
+
+  function applyPreset(key) {
+    preset = key;
+    const src = PRESETS[key];
+    temp = src.temp;
+    phase = src.phase;
+    liq = src.liq;
+    gas = src.gas;
+    clicks = 0;
+    simTime = 0;
+    points = [{ t: 0, y: temp }];
+    rows = [];
+    running = null;
+    cont = latent ? newCont() : null;
+    renderLatent();
+    iceBtn.classList.toggle("active", key === "ice");
+    hotBtn.classList.toggle("active", key === "hot");
+    deltaRead.textContent = "—";
+    showIdle();
+  }
+
+  function beginHeat() {
+    if (latent) {
+      if (!cont || phase === "gas") return;
+      cont.on = !cont.on;
+      updateHeatBtn();
+      draw();
+      return;
+    }
+    if (running || clicks >= LIMIT) return;
+    const plan = forecast(HEAT);
+    const from = temp;
+    running = { plan: plan, from: from, elapsed: 0, lastSample: simTime };
+    heatBtn.disabled = true;
+    heatBtn.textContent = "加熱中";
+  }
+
+  function finishHeat(plan, from) {
+    temp = plan.t;
+    phase = plan.phase;
+    liq = plan.liq;
+    gas = plan.gas;
+    const dText = deltaText(from, temp, phase);
+    const pText = progressText(phase, liq, gas);
+    clicks += 1;
+    rows.push({
+      temp: fmtTemp(temp),
+      phase: PHASE_NAME[phase],
+      delta: dText,
+      prog: pText
+    });
+    points.push({ t: simTime, y: temp });
+    running = null;
+    const bar = phase === "melting" ? liq * 100 : (phase === "boiling" ? gas * 100 : null);
+    renderReadout(dText, pText, bar);
+    renderTable(rows);
+    draw();
+  }
+
+  let lastTime = 0;
+  let loopOn = false;
+
+  function frame(now) {
+    if (document.hidden) {
+      loopOn = false;
+      return;
+    }
+    if (!lastTime) lastTime = now;
+    let dt = now - lastTime;
+    lastTime = now;
+    if (dt > 80) dt = 80;
+    if (running) {
+      running.elapsed += dt;
+      const u = Math.min(1, running.elapsed / RUN_MS);
+      simTime = (clicks * (RUN_MS / 1000)) + u * (RUN_MS / 1000);
+      const view = sample(running.plan, running.elapsed);
+      temp = u >= 1 ? running.plan.t : view.y;
+      phase = u >= 1 ? running.plan.phase : view.phase;
+      liq = u >= 1 ? running.plan.liq : view.liq;
+      gas = u >= 1 ? running.plan.gas : view.gas;
+      if (simTime - running.lastSample >= 0.15 || u >= 1) {
+        points.push({ t: simTime, y: temp });
+        running.lastSample = simTime;
+      }
+      const bar = phase === "melting" ? liq * 100 : (phase === "boiling" ? gas * 100 : null);
+      renderReadout("—", progressText(phase, liq, gas), bar);
+      draw();
+      if (u >= 1) finishHeat(running.plan, running.from);
+    }
+    if (cont && cont.on) {
+      const dts = dt / 1000;
+      simTime += dts;
+      addHeat(POWER * dts);
+      if (simTime - cont.lastSample >= 0.1 || phase === "gas") {
+        points.push({ t: simTime, y: temp });
+        cont.lastSample = simTime;
+      }
+      if (phase === "gas") cont.on = false;
+      const bar = phase === "melting" ? liq * 100 : (phase === "boiling" ? gas * 100 : null);
+      renderReadout("—", progressText(phase, liq, gas), bar);
+      renderLatent();
+      updateHeatBtn();
+      draw();
+    }
+    drawScene();
+    requestAnimationFrame(frame);
+  }
+
+  function startLoop() {
+    if (loopOn || document.hidden) return;
+    loopOn = true;
+    lastTime = 0;
+    requestAnimationFrame(frame);
+  }
+
+  iceBtn.addEventListener("click", function () { applyPreset("ice"); });
+  hotBtn.addEventListener("click", function () { applyPreset("hot"); });
+  document.getElementById("resetBtn").addEventListener("click", function () { applyPreset(preset); });
+  heatBtn.addEventListener("click", beginHeat);
+  latentBtn.addEventListener("click", function () { setLatent(!latent); });
+  let resizeTimer = 0;
+  window.addEventListener("resize", function () {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(draw, 80);
+  });
+  window.addEventListener("orientationchange", function () { window.setTimeout(draw, 120); });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) startLoop(); });
+  canvas.addEventListener("contextmenu", function (event) { event.preventDefault(); });
+
+  applyPreset("ice");
+  loopOn = true;
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

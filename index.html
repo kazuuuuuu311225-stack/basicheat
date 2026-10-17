@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f7fb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>物理基礎　熱　シミュレーション</title>
+<style>
+  :root { --blue: #1d4e89; --ink: #1c2430; --line: #c5ced8; --paper: #f4f7fb; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Yu Gothic", "游ゴシック", Meiryo, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    padding:
+      calc(16px + env(safe-area-inset-top))
+      calc(16px + env(safe-area-inset-right))
+      calc(16px + env(safe-area-inset-bottom))
+      calc(16px + env(safe-area-inset-left));
+    -webkit-text-size-adjust: 100%;
+  }
+  body { background: linear-gradient(180deg, #e6eef8 0%, #f4f7fb 320px); }
+  .top {
+    margin: -16px -16px 18px;
+    padding: calc(18px + env(safe-area-inset-top)) 20px 18px;
+    background: linear-gradient(120deg, #143a68 0%, #1d4e89 55%, #2b6cb0 100%);
+    color: #fff;
+    box-shadow: 0 2px 12px rgba(16, 40, 80, 0.2);
+  }
+  h1 { margin: 0 0 4px; font-size: 1.6rem; letter-spacing: 0.04em; }
+  .top p { margin: 0; color: rgba(255, 255, 255, 0.9); }
+  a {
+    box-shadow: 0 1px 2px rgba(16, 40, 80, 0.06), 0 6px 18px rgba(16, 40, 80, 0.08);
+    border-left: 5px solid #2b6cb0;
+    transition: transform 0.1s, box-shadow 0.15s;
+  }
+  a:hover { box-shadow: 0 2px 4px rgba(16, 40, 80, 0.08), 0 10px 24px rgba(16, 40, 80, 0.14); }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  a {
+    display: block;
+    min-height: 72px;
+    padding: 14px 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    color: var(--ink);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  a:active { background: #e8f0f8; }
+  .no { color: var(--blue); font-weight: 700; font-size: 0.95rem; }
+  .name { font-size: 1.15rem; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>物理基礎　熱　Web教材</h1>
+  <p>タブレットのブラウザで、授業の時間の画面を開きます。</p>
+  <p style="margin-top:8px;font-size:0.92rem"><a href="タブレットで使う.html" style="color:#fff;text-decoration:underline">配布・開き方（教師用）</a></p>
+</div>
+<ul>
+  <li><a href="第1時_熱運動とブラウン運動.html"><span class="no">第1時</span><br><span class="name">熱運動とブラウン運動</span></a></li>
+  <li><a href="第2時_℃とK.html"><span class="no">第2時</span><br><span class="name">℃と K</span></a></li>
+  <li><a href="第3時_熱量と温度.html"><span class="no">第3時</span><br><span class="name">熱量と温度</span></a></li>
+  <li><a href="第4時_熱の授受.html"><span class="no">第4時</span><br><span class="name">熱の授受</span></a></li>
+  <li><a href="第5時_状態変化の平台.html"><span class="no">第5時</span><br><span class="name">状態変化と温度</span></a></li>
+  <li><a href="第6時_熱と仕事.html"><span class="no">第6時</span><br><span class="name">熱と仕事</span></a></li>
+</ul>
+</body>
+</html>

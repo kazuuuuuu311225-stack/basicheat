@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d4e89">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>第1時　熱運動とブラウン運動</title>
+<style>
+  :root {
+    --blue: #1d4e89;
+    --ink: #1c2430;
+    --line: #c5ced8;
+    --paper: #f4f7fb;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    overscroll-behavior: none;
+    font-family: "Yu Gothic", "游ゴシック", Meiryo, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    padding:
+      env(safe-area-inset-top)
+      env(safe-area-inset-right)
+      env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+    -webkit-text-size-adjust: 100%;
+  }
+  header { padding: 10px 12px 4px; }
+  .kicker { margin: 0; color: var(--blue); font-weight: 700; font-size: 0.95rem; }
+  h1 { margin: 1px 0 4px; font-size: 1.25rem; }
+  .lead { margin: 0; line-height: 1.4; font-size: 0.95rem; }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 12px 2px;
+  }
+  .slider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 2px 12px 8px;
+    font-size: 16px;
+    touch-action: pan-x;
+  }
+  .slider input {
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    margin: 0;
+    background: transparent;
+    touch-action: pan-x;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .slider input::-webkit-slider-runnable-track {
+    height: 8px;
+    background: #c5ced8;
+    border-radius: 999px;
+  }
+  .slider input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    margin-top: -10px;
+    border: 0;
+    border-radius: 50%;
+    background: #1d4e89;
+  }
+  .slider input::-moz-range-track {
+    height: 8px;
+    background: #c5ced8;
+    border: 0;
+    border-radius: 999px;
+  }
+  .slider input::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 50%;
+    background: #1d4e89;
+  }
+  .slider .read {
+    min-width: 4.6em;
+    font-weight: 700;
+    color: #1d4e89;
+    font-size: 16px;
+  }
+  button {
+    font-family: inherit;
+    font-size: 16px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    cursor: pointer;
+    flex: 1 1 132px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  button.active {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+  }
+  .stage {
+    flex: 1;
+    min-height: 0;
+    margin: 0 12px 12px;
+    background: #0b1220;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .canvas-wrap {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+  @media (max-height: 520px) {
+    .kicker, .lead { display: none; }
+    header { padding: 4px 10px 0; }
+    h1 { font-size: 1rem; margin: 0; }
+    .controls { padding-top: 4px; }
+    .stage { margin-bottom: 6px; }
+    .legend { padding: 4px 10px; }
+  }
+  .hud {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    color: #e8f0f8;
+    background: rgba(8, 16, 28, 0.72);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 1.05rem;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 10px 14px 12px;
+    color: #dbe7f5;
+    background: #10192b;
+  }
+  .legend span { display: flex; align-items: center; gap: 8px; }
+  .legend span.off { opacity: 0.35; }
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .dot.mol { background: #38bdf8; }
+  .dot.pollen { width: 16px; height: 16px; background: #facc15; }
+  .dot.trail { background: #fb923c; }
+  .controls .group:last-child { flex-grow: 1.8; }
+  /* ===== 画面デザイン（全時間共通） ===== */
+  :root {
+    --blue: #1d4e89;
+    --blue-2: #2b6cb0;
+    --ink: #1c2430;
+    --muted: #5c6b7a;
+    --line: #d6dfe9;
+    --paper: #eef3f9;
+    --accent: #ea580c;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(16, 40, 80, 0.06), 0 6px 18px rgba(16, 40, 80, 0.08);
+  }
+  body { background: linear-gradient(180deg, #e6eef8 0%, #f4f7fb 280px); }
+  header {
+    margin: 0;
+    padding: 10px 16px 12px;
+    background: linear-gradient(120deg, #143a68 0%, #1d4e89 55%, #2b6cb0 100%);
+    color: #fff;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 14px;
+    align-items: center;
+    box-shadow: 0 2px 12px rgba(16, 40, 80, 0.2);
+  }
+  header .kicker {
+    grid-row: 1 / 3;
+    margin: 0;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  header h1 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.25rem, 2.4vw, 1.65rem);
+    letter-spacing: 0.04em;
+    line-height: 1.25;
+  }
+  header .lead {
+    margin: 3px 0 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: clamp(0.9rem, 1.5vw, 1rem);
+    line-height: 1.45;
+  }
+
+  .controls { padding: 10px 12px 0; gap: 10px; }
+  .group {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .glabel {
+    flex: 0 0 auto;
+    padding: 0 6px 0 8px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .group { flex-wrap: wrap; }
+  .group button { flex: 1 1 0; min-width: max-content; box-shadow: none; }
+
+  button {
+    font-size: 17px;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(16, 40, 80, 0.08);
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s, transform 0.08s;
+  }
+  button:hover:not(:disabled) { border-color: #9fb6d0; }
+  button:active:not(:disabled) { transform: translateY(1px) scale(0.985); }
+  button:focus-visible { outline: 3px solid rgba(43, 108, 176, 0.45); outline-offset: 2px; }
+  button.active {
+    background: linear-gradient(180deg, #2b6cb0, #1d4e89);
+    border-color: #1d4e89;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(29, 78, 137, 0.35);
+  }
+  button.primary {
+    background: linear-gradient(180deg, #fb8a3c, #ea580c);
+    border-color: #d9530a;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
+  }
+  button.primary:hover:not(:disabled) { border-color: #c2410c; }
+  button.ghost { background: #f4f7fb; color: var(--muted); box-shadow: none; }
+  button:disabled { opacity: 0.45; cursor: default; }
+
+  button.toggle {
+    position: relative;
+    padding-left: 58px;
+    padding-right: 10px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 16px;
+  }
+  button.toggle::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    width: 38px;
+    height: 22px;
+    margin-top: -11px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    transition: background 0.15s;
+  }
+  button.toggle::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    margin-top: -9px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: left 0.15s;
+  }
+  button.toggle.active {
+    background: #fff;
+    color: var(--ink);
+    border-color: #86b7e8;
+    box-shadow: none;
+  }
+  button.toggle.active::before { background: #22c55e; }
+  button.toggle.active::after { left: 30px; }
+
+  .slider {
+    width: auto;
+    margin: 10px 12px 0;
+    padding: 2px 8px 2px 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .sliders { padding: 10px 12px 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; }
+  .sliders .slider { margin: 0; }
+  .slider input::-webkit-slider-runnable-track {
+    height: 10px;
+    background: linear-gradient(90deg, #bcd3ea, #1d4e89);
+    border-radius: 999px;
+  }
+  .slider input::-moz-range-track {
+    height: 10px;
+    background: linear-gradient(90deg, #bcd3ea, #1d4e89);
+    border-radius: 999px;
+  }
+  .slider input.hot::-webkit-slider-runnable-track { background: linear-gradient(90deg, #38bdf8, #a78bfa 50%, #f87171); }
+  .slider input.hot::-moz-range-track { background: linear-gradient(90deg, #38bdf8, #a78bfa 50%, #f87171); }
+  .slider input::-webkit-slider-thumb {
+    width: 30px;
+    height: 30px;
+    margin-top: -10px;
+    background: #fff;
+    border: 3px solid #1d4e89;
+    box-shadow: 0 2px 6px rgba(16, 40, 80, 0.3);
+  }
+  .slider input::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: #fff;
+    border: 3px solid #1d4e89;
+    box-shadow: 0 2px 6px rgba(16, 40, 80, 0.3);
+  }
+  .slider .read, .read {
+    min-width: 5.6em;
+    padding: 6px 10px;
+    text-align: center;
+    color: var(--blue);
+    background: #f1f6fc;
+    border-radius: 10px;
+    font-size: 17px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .ends { padding: 4px 18px 0; }
+
+  .stage, .card, .chip, .table-wrap, .result, .heat, .graph, .obj {
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .stage { border: 1px solid rgba(15, 30, 60, 0.12); }
+  body > .stage { margin-top: 10px; }
+  .card, .chip, .table-wrap, .result, .heat, .graph { border-color: var(--line); }
+  .card .name, .graph-title, .graph .title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--blue);
+    font-weight: 700;
+  }
+  .card .name::before, .graph-title::before, .graph .title::before {
+    content: "";
+    width: 4px;
+    height: 1em;
+    border-radius: 2px;
+    background: var(--blue-2);
+  }
+  .chip { font-weight: 600; }
+  .chip.now {
+    font-size: 1.15rem;
+    color: var(--blue);
+    background: linear-gradient(180deg, #fff, #eef5fd);
+    border-color: #a9c6e6;
+  }
+  table { font-variant-numeric: tabular-nums; }
+  th { background: #eaf1f9; color: var(--blue); font-size: 0.9rem; letter-spacing: 0.02em; }
+  tbody tr:nth-child(even) td { background: #f8fafd; }
+
+  .hud {
+    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    font-weight: 700;
+    color: #f1f7ff;
+    background: rgba(10, 20, 36, 0.62);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(158, 197, 232, 0.28);
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .legend {
+    background: #0f1a2e;
+    border-top: 1px solid rgba(158, 197, 232, 0.14);
+    gap: 10px;
+    font-size: 0.95rem;
+  }
+  .legend span {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  @media (max-width: 900px), (max-height: 560px) {
+    .glabel { display: none; }
+    .group { gap: 4px; padding: 4px; }
+    button.toggle { padding-left: 12px; padding-right: 12px; text-align: center; }
+    button.toggle::before, button.toggle::after { display: none; }
+    button.toggle.active { background: #ecfdf3; border-color: #22c55e; color: #166534; }
+  }
+  @media (max-width: 600px) {
+    header { grid-template-columns: 1fr; padding: 8px 12px 10px; }
+    header .kicker { grid-row: auto; justify-self: start; padding: 3px 10px; margin-bottom: 4px; }
+    .glabel { display: none; }
+  }
+  @media (max-height: 560px) {
+    header { padding: 6px 12px; }
+    header h1 { font-size: 1.05rem; }
+    .controls { padding-top: 6px; }
+    .slider { margin-top: 6px; }
+    body > .stage { margin-top: 6px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <p class="kicker">物理基礎　熱　第1時</p>
+  <h1>熱運動とブラウン運動</h1>
+  <p class="lead">水の分子は青く、小さく表示します。水に浮かぶ微粒子（花粉から出た細かい粒など）は、大きく黄色い粒です。オレンジの線は微粒子の軌跡です。温度はスライダーで変えられます。</p>
+</header>
+<div class="controls">
+  <div class="group">
+    <span class="glabel">温度</span>
+    <button type="button" class="temp" data-t="20">20 ℃　常温</button>
+    <button type="button" class="temp" data-t="-150">−150 ℃　低温</button>
+    <button type="button" class="temp" data-t="200">200 ℃　高温</button>
+  </div>
+  <div class="group">
+    <span class="glabel">表示</span>
+    <button type="button" id="molBtn" class="toggle">水の分子　オフ</button>
+    <button type="button" id="pollenBtn" class="toggle active">微粒子　有り</button>
+    <button type="button" id="trailBtn" class="toggle">軌跡　オン</button>
+  </div>
+</div>
+<label class="slider">温度
+  <input id="tempSlider" class="hot" type="range" min="-170" max="320" step="10" value="20" aria-label="温度">
+  <span class="read" id="tempRead">20 ℃</span>
+</label>
+<div class="stage">
+  <div class="canvas-wrap">
+    <div class="hud" id="hud">20 ℃</div>
+    <canvas id="view" aria-label="水の分子と微粒子の運動"></canvas>
+  </div>
+  <div class="legend">
+    <span id="legendMol" class="off"><i class="dot mol"></i>水の分子</span>
+    <span id="legendPollen"><i class="dot pollen"></i>微粒子</span>
+    <span><i class="dot trail"></i>微粒子の軌跡</span>
+  </div>
+</div>
+<script>
+(function () {
+  const canvas = document.getElementById("view");
+  const ctx = canvas.getContext("2d");
+  const hud = document.getElementById("hud");
+  const molBtn = document.getElementById("molBtn");
+  const pollenBtn = document.getElementById("pollenBtn");
+  const trailBtn = document.getElementById("trailBtn");
+  const legendMol = document.getElementById("legendMol");
+  const legendPollen = document.getElementById("legendPollen");
+  const tempSlider = document.getElementById("tempSlider");
+  const tempRead = document.getElementById("tempRead");
+  const tempButtons = Array.from(document.querySelectorAll(".temp"));
+
+  const MOL_R = 3.4;
+  const POLLEN_R = 26;
+  const TRAIL_MAX = 420;
+
+  let width = 0;
+  let height = 0;
+  let temperature = 300;
+  let showMols = false;
+  let showPollen = true;
+  let showTrail = true;
+  let mols = [];
+  let pollen = null;
+  let trail = [];
+
+  function molCount() {
+    return Math.max(120, Math.min(220, Math.round(width * height / 5500)));
+  }
+
+  function molSpeed(t) {
+    return 0.03 * t;
+  }
+
+  function kickSize(t) {
+    return 2.6 * (t / 300);
+  }
+
+  function dampFor(t) {
+    if (t <= 100) return 0.88;
+    if (t <= 300) return 0.88 + (0.975 - 0.88) * ((t - 100) / 200);
+    return 0.975 + (0.99 - 0.975) * Math.min(1, (t - 300) / 300);
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const nextW = Math.max(240, Math.floor(canvas.clientWidth));
+    const nextH = Math.max(140, Math.floor(canvas.clientHeight));
+    if (nextW === width && nextH === height) return false;
+    width = nextW;
+    height = nextH;
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return true;
+  }
+
+  function makeMol() {
+    const speed = molSpeed(temperature);
+    const angle = Math.random() * Math.PI * 2;
+    return {
+      x: MOL_R + Math.random() * (width - MOL_R * 2),
+      y: MOL_R + Math.random() * (height - MOL_R * 2),
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed
+    };
+  }
+
+  function setMolSpeed(mol) {
+    const speed = molSpeed(temperature);
+    const angle = Math.atan2(mol.vy, mol.vx);
+    mol.vx = Math.cos(angle) * speed;
+    mol.vy = Math.sin(angle) * speed;
+  }
+
+  function resetPollen() {
+    pollen = { x: width * 0.5, y: height * 0.55, vx: 0, vy: 0 };
+    trail = [{ x: pollen.x, y: pollen.y }];
+  }
+
+  function init() {
+    resize();
+    mols = [];
+    const n = molCount();
+    for (let i = 0; i < n; i += 1) mols.push(makeMol());
+    resetPollen();
+  }
+
+  function bounceMol(mol) {
+    if (mol.x < MOL_R) { mol.x = MOL_R; mol.vx = Math.abs(mol.vx); }
+    else if (mol.x > width - MOL_R) { mol.x = width - MOL_R; mol.vx = -Math.abs(mol.vx); }
+    if (mol.y < MOL_R) { mol.y = MOL_R; mol.vy = Math.abs(mol.vy); }
+    else if (mol.y > height - MOL_R) { mol.y = height - MOL_R; mol.vy = -Math.abs(mol.vy); }
+  }
+
+  function bouncePollen() {
+    const r = POLLEN_R;
+    if (pollen.x < r) { pollen.x = r; pollen.vx = Math.abs(pollen.vx) * 0.8; }
+    else if (pollen.x > width - r) { pollen.x = width - r; pollen.vx = -Math.abs(pollen.vx) * 0.8; }
+    if (pollen.y < r) { pollen.y = r; pollen.vy = Math.abs(pollen.vy) * 0.8; }
+    else if (pollen.y > height - r) { pollen.y = height - r; pollen.vy = -Math.abs(pollen.vy) * 0.8; }
+  }
+
+  function hit(mol) {
+    const dx = mol.x - pollen.x;
+    const dy = mol.y - pollen.y;
+    const dist = Math.hypot(dx, dy);
+    const min = MOL_R + POLLEN_R;
+    if (dist >= min || dist === 0) return;
+    const nx = dx / dist;
+    const ny = dy / dist;
+    const overlap = min - dist;
+    mol.x += nx * overlap;
+    mol.y += ny * overlap;
+    mol.vx = nx * molSpeed(temperature);
+    mol.vy = ny * molSpeed(temperature);
+    const kick = kickSize(temperature) * (0.65 + Math.random() * 0.7);
+    pollen.vx -= nx * kick;
+    pollen.vy -= ny * kick;
+  }
+
+  function step() {
+    for (let i = 0; i < mols.length; i += 1) {
+      const mol = mols[i];
+      mol.x += mol.vx;
+      mol.y += mol.vy;
+      bounceMol(mol);
+      if (showPollen) hit(mol);
+    }
+    if (!showPollen) return;
+    pollen.x += pollen.vx;
+    pollen.y += pollen.vy;
+    const damp = dampFor(temperature);
+    pollen.vx *= damp;
+    pollen.vy *= damp;
+    pollenPhase += (pollen.vx - pollen.vy) * 0.004;
+    bouncePollen();
+    if (showTrail) {
+      trail.push({ x: pollen.x, y: pollen.y });
+      if (trail.length > TRAIL_MAX) trail.shift();
+    }
+  }
+
+  const POLLEN_LOBES = 11;
+  let pollenPhase = Math.random() * Math.PI * 2;
+
+  function drawBackground() {
+    const bg = ctx.createLinearGradient(0, 0, 0, height);
+    bg.addColorStop(0, "#0d1729");
+    bg.addColorStop(1, "#060c18");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = "rgba(125, 211, 252, 0.06)";
+    ctx.lineWidth = 1;
+    for (let x = 40; x < width; x += 40) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+    for (let y = 40; y < height; y += 40) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+  }
+
+  /* 古い部分ほど薄くして、いま動いている向きが追えるようにする */
+  function drawTrail() {
+    const n = trail.length;
+    if (n < 2) return;
+    const chunk = 12;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (let start = 0; start < n - 1; start += chunk) {
+      const end = Math.min(n - 1, start + chunk);
+      const age = end / (n - 1);
+      ctx.beginPath();
+      ctx.moveTo(trail[start].x, trail[start].y);
+      for (let i = start + 1; i <= end; i += 1) ctx.lineTo(trail[i].x, trail[i].y);
+      ctx.strokeStyle = "rgba(251, 146, 60, " + (0.18 + 0.8 * age).toFixed(3) + ")";
+      ctx.lineWidth = 1.6 + 1.8 * age;
+      ctx.stroke();
+    }
+  }
+
+  function drawMols() {
+    ctx.fillStyle = "rgba(56, 189, 248, 0.18)";
+    for (let i = 0; i < mols.length; i += 1) {
+      const mol = mols[i];
+      ctx.beginPath();
+      ctx.arc(mol.x, mol.y, MOL_R * 2.1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = "#93ddfd";
+    for (let i = 0; i < mols.length; i += 1) {
+      const mol = mols[i];
+      ctx.beginPath();
+      ctx.arc(mol.x, mol.y, MOL_R, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  /* でこぼこの輪郭と短い突起で、青い粒とは別の「微粒子」に見せる */
+  function drawPollen() {
+    const r = POLLEN_R;
+    const x = pollen.x;
+    const y = pollen.y;
+    ctx.strokeStyle = "rgba(202, 138, 4, 0.95)";
+    ctx.lineWidth = Math.max(2, r * 0.16);
+    ctx.lineCap = "round";
+    for (let i = 0; i < POLLEN_LOBES; i += 1) {
+      const a = (Math.PI * 2 * i) / POLLEN_LOBES + pollenPhase;
+      ctx.beginPath();
+      ctx.moveTo(x + Math.cos(a) * r * 0.9, y + Math.sin(a) * r * 0.9);
+      ctx.lineTo(x + Math.cos(a) * r * 1.16, y + Math.sin(a) * r * 1.16);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    const steps = 72;
+    for (let i = 0; i <= steps; i += 1) {
+      const a = (i / steps) * Math.PI * 2;
+      const rr = r * (1 + 0.07 * Math.cos(a * POLLEN_LOBES - pollenPhase * POLLEN_LOBES));
+      const px = x + Math.cos(a) * rr;
+      const py = y + Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    const g = ctx.createRadialGradient(x - r * 0.32, y - r * 0.32, r * 0.1, x, y, r * 1.05);
+    g.addColorStop(0, "#fff7c2");
+    g.addColorStop(0.55, "#fbd34d");
+    g.addColorStop(1, "#ca8a04");
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(133, 77, 14, 0.9)";
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x - r * 0.32, y - r * 0.34, r * 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
+    ctx.fill();
+  }
+
+  function draw() {
+    drawBackground();
+    if (showPollen && showTrail) drawTrail();
+    if (showMols) drawMols();
+    if (showPollen) drawPollen();
+  }
+
+  let lastTime = 0;
+  let stepBank = 0;
+  let loopOn = false;
+  const STEP_MS = 1000 / 60;
+
+  function frame(now) {
+    if (document.hidden) {
+      loopOn = false;
+      return;
+    }
+    if (!lastTime) lastTime = now;
+    let dt = now - lastTime;
+    lastTime = now;
+    if (dt > 80) dt = 80;
+    stepBank += dt;
+    let guard = 0;
+    while (stepBank >= STEP_MS && guard < 3) {
+      step();
+      stepBank -= STEP_MS;
+      guard += 1;
+    }
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  function startLoop() {
+    if (loopOn || document.hidden) return;
+    loopOn = true;
+    lastTime = 0;
+    stepBank = 0;
+    requestAnimationFrame(frame);
+  }
+
+  function setTemperature(c) {
+    const celsius = Math.max(-170, Math.min(320, Math.round(c / 10) * 10));
+    temperature = celsius + 273;
+    tempSlider.value = String(celsius);
+    const label = (celsius < 0 ? "−" + Math.abs(celsius) : String(celsius)) + " ℃";
+    tempRead.textContent = label;
+    hud.textContent = label;
+    tempButtons.forEach(function (btn) {
+      btn.classList.toggle("active", Number(btn.dataset.t) === celsius);
+    });
+    mols.forEach(setMolSpeed);
+  }
+
+  tempButtons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      setTemperature(Number(btn.dataset.t));
+    });
+  });
+
+  tempSlider.addEventListener("input", function () {
+    setTemperature(Number(tempSlider.value));
+  });
+
+  molBtn.addEventListener("click", function () {
+    showMols = !showMols;
+    molBtn.textContent = showMols ? "水の分子　オン" : "水の分子　オフ";
+    molBtn.classList.toggle("active", showMols);
+    legendMol.classList.toggle("off", !showMols);
+  });
+
+  pollenBtn.addEventListener("click", function () {
+    showPollen = !showPollen;
+    pollenBtn.textContent = showPollen ? "微粒子　有り" : "微粒子　無し";
+    pollenBtn.classList.toggle("active", showPollen);
+    legendPollen.classList.toggle("off", !showPollen);
+    if (showPollen) resetPollen();
+    else trail = [];
+  });
+
+  trailBtn.addEventListener("click", function () {
+    showTrail = !showTrail;
+    trailBtn.textContent = showTrail ? "軌跡　オン" : "軌跡　オフ";
+    trailBtn.classList.toggle("active", showTrail);
+    trail = showTrail ? [{ x: pollen.x, y: pollen.y }] : [];
+  });
+
+  let resizeTimer = 0;
+  function onViewportChange() {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(function () {
+      const oldW = width;
+      const oldH = height;
+      if (!resize()) return;
+      if (Math.abs(oldW - width) > 60 || Math.abs(oldH - height) > 80) init();
+    }, 120);
+  }
+
+  window.addEventListener("resize", onViewportChange);
+  window.addEventListener("orientationchange", onViewportChange);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", onViewportChange);
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) startLoop();
+  });
+  canvas.addEventListener("contextmenu", function (event) {
+    event.preventDefault();
+  });
+
+  init();
+  setTemperature(20);
+  trailBtn.classList.add("active");
+  loopOn = true;
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

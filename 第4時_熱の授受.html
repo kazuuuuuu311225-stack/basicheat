@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d4e89">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>第4時　熱の授受</title>
+<style>
+  :root {
+    --blue: #1d4e89;
+    --ink: #1c2430;
+    --line: #c5ced8;
+    --paper: #f4f7fb;
+    --hot: #f97316;
+    --cold: #38bdf8;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    overscroll-behavior: none;
+    font-family: "Yu Gothic", "游ゴシック", Meiryo, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    padding:
+      env(safe-area-inset-top)
+      env(safe-area-inset-right)
+      env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+    -webkit-text-size-adjust: 100%;
+  }
+  header { padding: 8px 12px 0; }
+  .kicker { margin: 0; color: var(--blue); font-weight: 700; font-size: 0.95rem; }
+  h1 { margin: 1px 0 2px; font-size: 1.25rem; }
+  .lead { margin: 0; line-height: 1.4; font-size: 0.95rem; }
+  .controls, .heats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px 0;
+  }
+  button {
+    font-family: inherit;
+    font-size: 16px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    cursor: pointer;
+    flex: 1 1 108px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  button.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .spec { margin: 6px 12px 0; font-size: 1rem; line-height: 1.4; }
+  .pair {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    gap: 0;
+    padding: 8px 12px 0;
+  }
+  .obj {
+    flex: 1;
+    min-width: 0;
+    background: #0b1220;
+    color: #e8f0f8;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 2px solid #0b1220;
+  }
+  .obj.a { border-radius: 12px 0 0 12px; }
+  .obj.b { border-radius: 0 12px 12px 0; }
+  .obj .top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 8px 12px 0; }
+  .obj h2 { margin: 0; font-size: 1rem; color: #9ec5e8; }
+  .meta { margin: 0; font-size: 1rem; }
+  .temp {
+    margin: 0 12px;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .obj canvas { display: block; width: 100%; flex: 1; min-height: 70px; touch-action: none; }
+  .contact {
+    flex: 0 0 34px;
+    background: #1e2b44;
+    color: #cbd8e6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    writing-mode: vertical-rl;
+    letter-spacing: 0.2em;
+  }
+  .contact .arrow {
+    writing-mode: horizontal-tb;
+    font-size: 1.4rem;
+    color: var(--hot);
+    visibility: hidden;
+  }
+  .contact.on { background: #3b2a1e; }
+  .contact.on .arrow { visibility: visible; animation: flow 0.9s linear infinite; }
+  @keyframes flow {
+    0% { transform: translateX(-5px); opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { transform: translateX(5px); opacity: 0.3; }
+  }
+  .graph {
+    margin: 8px 12px 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    height: clamp(190px, 36vh, 340px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .graph .title { margin: 0; padding: 6px 12px 0; color: var(--blue); font-weight: 700; font-size: 1rem; flex-wrap: wrap; }
+  .graph .key { display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; color: var(--ink); font-weight: 700; }
+  .graph .key::before { content: ""; width: 26px; height: 5px; border-radius: 3px; background: currentColor; }
+  .graph .key.a::before { background: #ea580c; }
+  .graph .key.b::before { background: #0369a1; }
+  .graph canvas { flex: 1; min-height: 0; width: 100%; display: block; touch-action: none; }
+  .heats { padding-bottom: 12px; }
+  .heat, .badge {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+  }
+  .heat strong { font-variant-numeric: tabular-nums; color: var(--blue); }
+  .badge { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 700; }
+  [hidden] { display: none !important; }
+  @media (max-height: 640px) {
+    .graph { height: 200px; }
+  }
+  @media (max-height: 560px) {
+    .kicker, .lead { display: none; }
+    header { padding-top: 4px; }
+    h1 { font-size: 1rem; margin: 0; }
+    .graph { height: 160px; }
+  }
+  .heat { font-weight: 600; }
+  .heat strong { font-size: 1.25rem; }
+  .badge {
+    background: linear-gradient(180deg, #22c55e, #15803d);
+    border-color: #15803d;
+    box-shadow: 0 2px 8px rgba(21, 128, 61, 0.35);
+    letter-spacing: 0.08em;
+  }
+  .spec { font-weight: 600; color: #34465a; }
+  /* ===== 画面デザイン（全時間共通） ===== */
+  :root {
+    --blue: #1d4e89;
+    --blue-2: #2b6cb0;
+    --ink: #1c2430;
+    --muted: #5c6b7a;
+    --line: #d6dfe9;
+    --paper: #eef3f9;
+    --accent: #ea580c;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(16, 40, 80, 0.06), 0 6px 18px rgba(16, 40, 80, 0.08);
+  }
+  body { background: linear-gradient(180deg, #e6eef8 0%, #f4f7fb 280px); }
+  header {
+    margin: 0;
+    padding: 10px 16px 12px;
+    background: linear-gradient(120deg, #143a68 0%, #1d4e89 55%, #2b6cb0 100%);
+    color: #fff;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 14px;
+    align-items: center;
+    box-shadow: 0 2px 12px rgba(16, 40, 80, 0.2);
+  }
+  header .kicker {
+    grid-row: 1 / 3;
+    margin: 0;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  header h1 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.25rem, 2.4vw, 1.65rem);
+    letter-spacing: 0.04em;
+    line-height: 1.25;
+  }
+  header .lead {
+    margin: 3px 0 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: clamp(0.9rem, 1.5vw, 1rem);
+    line-height: 1.45;
+  }
+
+  .controls { padding: 10px 12px 0; gap: 10px; }
+  .group {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .glabel {
+    flex: 0 0 auto;
+    padding: 0 6px 0 8px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .group { flex-wrap: wrap; }
+  .group button { flex: 1 1 0; min-width: max-content; box-shadow: none; }
+
+  button {
+    font-size: 17px;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(16, 40, 80, 0.08);
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s, transform 0.08s;
+  }
+  button:hover:not(:disabled) { border-color: #9fb6d0; }
+  button:active:not(:disabled) { transform: translateY(1px) scale(0.985); }
+  button:focus-visible { outline: 3px solid rgba(43, 108, 176, 0.45); outline-offset: 2px; }
+  button.active {
+    background: linear-gradient(180deg, #2b6cb0, #1d4e89);
+    border-color: #1d4e89;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(29, 78, 137, 0.35);
+  }
+  button.primary {
+    background: linear-gradient(180deg, #fb8a3c, #ea580c);
+    border-color: #d9530a;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
+  }
+  button.primary:hover:not(:disabled) { border-color: #c2410c; }
+  button.ghost { background: #f4f7fb; color: var(--muted); box-shadow: none; }
+  button:disabled { opacity: 0.45; cursor: default; }
+
+  button.toggle {
+    position: relative;
+    padding-left: 58px;
+    padding-right: 10px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 16px;
+  }
+  button.toggle::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    width: 38px;
+    height: 22px;
+    margin-top: -11px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    transition: background 0.15s;
+  }
+  button.toggle::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    margin-top: -9px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: left 0.15s;
+  }
+  button.toggle.active {
+    background: #fff;
+    color: var(--ink);
+    border-color: #86b7e8;
+    box-shadow: none;
+  }
+  button.toggle.active::before { background: #22c55e; }
+  button.toggle.active::after { left: 30px; }
+
+  .slider {
+    width: auto;
+    margin: 10px 12px 0;
+    padding: 2px 8px 2px 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .sliders { padding: 10px 12px 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; }
+  .sliders .slider { margin: 0; }
+  .slider input::-webkit-slider-runnable-track {
+    height: 10px;
+    background: linear-gradient(90deg, #bcd3ea, #1d4e89);
+    border-radius: 999px;
+  }
+  .slider input::-moz-range-track {
+    height: 10px;
+    background: linear-gradient(90deg, #bcd3ea, #1d4e89);
+    border-radius: 999px;
+  }
+  .slider input.hot::-webkit-slider-runnable-track { background: linear-gradient(90deg, #38bdf8, #a78bfa 50%, #f87171); }
+  .slider input.hot::-moz-range-track { background: linear-gradient(90deg, #38bdf8, #a78bfa 50%, #f87171); }
+  .slider input::-webkit-slider-thumb {
+    width: 30px;
+    height: 30px;
+    margin-top: -10px;
+    background: #fff;
+    border: 3px solid #1d4e89;
+    box-shadow: 0 2px 6px rgba(16, 40, 80, 0.3);
+  }
+  .slider input::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: #fff;
+    border: 3px solid #1d4e89;
+    box-shadow: 0 2px 6px rgba(16, 40, 80, 0.3);
+  }
+  .slider .read, .read {
+    min-width: 5.6em;
+    padding: 6px 10px;
+    text-align: center;
+    color: var(--blue);
+    background: #f1f6fc;
+    border-radius: 10px;
+    font-size: 17px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .ends { padding: 4px 18px 0; }
+
+  .stage, .card, .chip, .table-wrap, .result, .heat, .graph, .obj {
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .stage { border: 1px solid rgba(15, 30, 60, 0.12); }
+  body > .stage { margin-top: 10px; }
+  .card, .chip, .table-wrap, .result, .heat, .graph { border-color: var(--line); }
+  .card .name, .graph-title, .graph .title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--blue);
+    font-weight: 700;
+  }
+  .card .name::before, .graph-title::before, .graph .title::before {
+    content: "";
+    width: 4px;
+    height: 1em;
+    border-radius: 2px;
+    background: var(--blue-2);
+  }
+  .chip { font-weight: 600; }
+  .chip.now {
+    font-size: 1.15rem;
+    color: var(--blue);
+    background: linear-gradient(180deg, #fff, #eef5fd);
+    border-color: #a9c6e6;
+  }
+  table { font-variant-numeric: tabular-nums; }
+  th { background: #eaf1f9; color: var(--blue); font-size: 0.9rem; letter-spacing: 0.02em; }
+  tbody tr:nth-child(even) td { background: #f8fafd; }
+
+  .hud {
+    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    font-weight: 700;
+    color: #f1f7ff;
+    background: rgba(10, 20, 36, 0.62);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(158, 197, 232, 0.28);
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .legend {
+    background: #0f1a2e;
+    border-top: 1px solid rgba(158, 197, 232, 0.14);
+    gap: 10px;
+    font-size: 0.95rem;
+  }
+  .legend span {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  @media (max-width: 900px), (max-height: 560px) {
+    .glabel { display: none; }
+    .group { gap: 4px; padding: 4px; }
+    button.toggle { padding-left: 12px; padding-right: 12px; text-align: center; }
+    button.toggle::before, button.toggle::after { display: none; }
+    button.toggle.active { background: #ecfdf3; border-color: #22c55e; color: #166534; }
+  }
+  @media (max-width: 600px) {
+    header { grid-template-columns: 1fr; padding: 8px 12px 10px; }
+    header .kicker { grid-row: auto; justify-self: start; padding: 3px 10px; margin-bottom: 4px; }
+    .glabel { display: none; }
+  }
+  @media (max-height: 560px) {
+    header { padding: 6px 12px; }
+    header h1 { font-size: 1.05rem; }
+    .controls { padding-top: 6px; }
+    .slider { margin-top: 6px; }
+    body > .stage { margin-top: 6px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <p class="kicker">物理基礎　熱　第4時</p>
+  <h1>熱の授受</h1>
+  <p class="lead">設定1 → 設定2 → 設定3 の順に進めます。熱平衡成立が出てから、温度と熱量を書きます。</p>
+</header>
+<div class="controls">
+  <div class="group">
+    <span class="glabel">設定</span>
+    <button type="button" id="set1" class="active">設定1</button>
+    <button type="button" id="set2">設定2</button>
+    <button type="button" id="set3">設定3</button>
+  </div>
+  <div class="group narrow">
+    <span class="glabel">操作</span>
+    <button type="button" id="startBtn" class="primary">接触開始</button>
+    <button type="button" id="resetBtn" class="ghost">リセット</button>
+  </div>
+</div>
+<p class="spec" id="spec">A（左）水 500 g・80℃　　B（右）鉄 500 g・20℃</p>
+<div class="pair">
+  <section class="obj a">
+    <div class="top"><h2>A（左）</h2><p class="meta" id="metaA">水　500 g</p></div>
+    <p class="temp" id="tempA">80.0 ℃</p>
+    <canvas id="viewA" aria-label="物体Aの粒子"></canvas>
+  </section>
+  <div class="contact" id="contact"><span>接触</span><span class="arrow" aria-hidden="true">→</span></div>
+  <section class="obj b">
+    <div class="top"><h2>B（右）</h2><p class="meta" id="metaB">鉄　500 g</p></div>
+    <p class="temp" id="tempB">20.0 ℃</p>
+    <canvas id="viewB" aria-label="物体Bの粒子"></canvas>
+  </section>
+</div>
+<section class="graph">
+  <p class="title">時間と温度<span class="key a" id="keyA">A（左）水</span><span class="key b" id="keyB">B（右）鉄</span></p>
+  <canvas id="graph" aria-label="A と B の温度の時間変化"></canvas>
+</section>
+<div class="heats">
+  <div class="heat">失った熱量 <strong id="qLoss">0.00 J</strong></div>
+  <div class="heat">得た熱量 <strong id="qGain">0.00 J</strong></div>
+  <div class="badge" id="badge" hidden>熱平衡成立</div>
+</div>
+<script>
+(function () {
+  const SETUPS = {
+    1: {
+      text: "A（左）水 500 g・80℃　　B（右）水 500 g・20℃",
+      a: { mat: "water", m: 500, t: 80 },
+      b: { mat: "water", m: 500, t: 20 }
+    },
+    2: {
+      text: "A（左）水 500 g・80℃　　B（右）鉄 500 g・20℃",
+      a: { mat: "water", m: 500, t: 80 },
+      b: { mat: "iron", m: 500, t: 20 }
+    },
+    3: {
+      text: "A（左）鉄 100 g・100℃　　B（右）水 500 g・20℃",
+      a: { mat: "iron", m: 100, t: 100 },
+      b: { mat: "water", m: 500, t: 20 }
+    }
+  };
+  const NAMES = { water: "水", iron: "鉄" };
+  const RUN_S = 8;
+  const EQ_EPS = 0.05;
+  const GRAPH_T = 10;
+
+  const spec = document.getElementById("spec");
+  const metaA = document.getElementById("metaA");
+  const metaB = document.getElementById("metaB");
+  const tempA = document.getElementById("tempA");
+  const tempB = document.getElementById("tempB");
+  const qLoss = document.getElementById("qLoss");
+  const qGain = document.getElementById("qGain");
+  const badge = document.getElementById("badge");
+  const contact = document.getElementById("contact");
+  const startBtn = document.getElementById("startBtn");
+  const graph = document.getElementById("graph");
+  const gctx = graph.getContext("2d");
+  const setButtons = {
+    1: document.getElementById("set1"),
+    2: document.getElementById("set2"),
+    3: document.getElementById("set3")
+  };
+  const views = { a: document.getElementById("viewA"), b: document.getElementById("viewB") };
+
+  let setupId = 1;
+  let phase = "idle";
+  let elapsed = 0;
+  let shownA = 80;
+  let shownB = 20;
+  let partsA = [];
+  let partsB = [];
+  let sizeA = { w: 0, h: 0 };
+  let sizeB = { w: 0, h: 0 };
+  let history = [];
+  let tau = 1;
+
+  function capacity(obj) {
+    if (obj.mat === "water") return obj.m * 42 / 10;
+    return obj.m * 45 / 100;
+  }
+
+  function finals(setup) {
+    const ca = capacity(setup.a);
+    const cb = capacity(setup.b);
+    const teq = (ca * setup.a.t + cb * setup.b.t) / (ca + cb);
+    const hot = setup.a.t >= setup.b.t ? setup.a : setup.b;
+    const q = capacity(hot) * Math.abs(hot.t - teq);
+    return { teq: teq, q: q };
+  }
+
+  function speedOf(celsius) {
+    return 0.42 * Math.sqrt(celsius + 273.15);
+  }
+
+  function ampOf(celsius) {
+    return 2.6 * Math.sqrt((celsius + 273.15) / 293.15);
+  }
+
+  /* 水は自由に動き、鉄は決まった位置のまわりで振動する */
+  function makeParts(box, mat, celsius) {
+    const list = [];
+    if (mat === "iron") {
+      const gap = 32;
+      const cols = Math.max(3, Math.floor((box.w - 20) / gap));
+      const rows = Math.max(3, Math.floor((box.h - 20) / gap));
+      const offX = (box.w - (cols - 1) * gap) / 2;
+      const offY = (box.h - (rows - 1) * gap) / 2;
+      for (let r = 0; r < rows; r += 1) {
+        for (let c = 0; c < cols; c += 1) {
+          list.push({
+            hx: offX + c * gap,
+            hy: offY + r * gap,
+            px: Math.random() * Math.PI * 2,
+            py: Math.random() * Math.PI * 2,
+            fx: 0.21 + Math.random() * 0.1,
+            fy: 0.21 + Math.random() * 0.1,
+            x: 0,
+            y: 0
+          });
+        }
+      }
+      return list;
+    }
+    const n = Math.max(16, Math.min(36, Math.round(box.w * box.h / 9000)));
+    const speed = speedOf(celsius);
+    for (let i = 0; i < n; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      list.push({
+        x: 8 + Math.random() * Math.max(10, box.w - 16),
+        y: 8 + Math.random() * Math.max(10, box.h - 16),
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed
+      });
+    }
+    return list;
+  }
+
+  function fitCanvas(canvas, box) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(60, Math.floor(canvas.clientWidth));
+    const h = Math.max(60, Math.floor(canvas.clientHeight));
+    if (w === box.w && h === box.h) return false;
+    box.w = w;
+    box.h = h;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0);
+    return true;
+  }
+
+  function refreshParts() {
+    fitCanvas(views.a, sizeA);
+    fitCanvas(views.b, sizeB);
+    const setup = SETUPS[setupId];
+    partsA = makeParts(sizeA, setup.a.mat, shownA);
+    partsB = makeParts(sizeB, setup.b.mat, shownB);
+    drawGraph();
+  }
+
+  function setText() {
+    tempA.textContent = shownA.toFixed(1) + " ℃";
+    tempB.textContent = shownB.toFixed(1) + " ℃";
+  }
+
+  function applyIdle() {
+    const setup = SETUPS[setupId];
+    phase = "idle";
+    elapsed = 0;
+    shownA = setup.a.t;
+    shownB = setup.b.t;
+    history = [{ t: 0, a: shownA, b: shownB }];
+    spec.textContent = setup.text;
+    metaA.textContent = NAMES[setup.a.mat] + "　" + setup.a.m + " g";
+    metaB.textContent = NAMES[setup.b.mat] + "　" + setup.b.m + " g";
+    document.getElementById("keyA").textContent = "A（左）" + NAMES[setup.a.mat];
+    document.getElementById("keyB").textContent = "B（右）" + NAMES[setup.b.mat];
+    setText();
+    qLoss.textContent = "0.00 J";
+    qGain.textContent = "0.00 J";
+    badge.hidden = true;
+    contact.classList.remove("on");
+    startBtn.disabled = false;
+    startBtn.textContent = "接触開始";
+    Object.keys(setButtons).forEach(function (key) {
+      setButtons[key].classList.toggle("active", Number(key) === setupId);
+    });
+    refreshParts();
+  }
+
+  function stepParts(list, box, mat, celsius) {
+    if (mat === "iron") {
+      const amp = ampOf(celsius);
+      for (let i = 0; i < list.length; i += 1) {
+        const p = list[i];
+        p.px += p.fx;
+        p.py += p.fy;
+        p.x = p.hx + Math.sin(p.px) * amp;
+        p.y = p.hy + Math.sin(p.py) * amp;
+      }
+      return;
+    }
+    const speed = speedOf(celsius);
+    for (let i = 0; i < list.length; i += 1) {
+      const p = list[i];
+      const angle = Math.atan2(p.vy, p.vx);
+      p.vx = Math.cos(angle) * speed;
+      p.vy = Math.sin(angle) * speed;
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 6) { p.x = 6; p.vx = Math.abs(p.vx); }
+      else if (p.x > box.w - 6) { p.x = box.w - 6; p.vx = -Math.abs(p.vx); }
+      if (p.y < 6) { p.y = 6; p.vy = Math.abs(p.vy); }
+      else if (p.y > box.h - 6) { p.y = box.h - 6; p.vy = -Math.abs(p.vy); }
+    }
+  }
+
+  function drawParts(canvas, list, box, mat) {
+    const ctx = canvas.getContext("2d");
+    const bg = ctx.createLinearGradient(0, 0, 0, box.h);
+    bg.addColorStop(0, "#0d1729");
+    bg.addColorStop(1, "#060c18");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, box.w, box.h);
+    if (mat === "iron") {
+      ctx.strokeStyle = "rgba(231, 194, 122, 0.12)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i < list.length; i += 1) {
+        const p = list[i];
+        ctx.beginPath();
+        ctx.moveTo(p.hx - 13, p.hy);
+        ctx.lineTo(p.hx + 13, p.hy);
+        ctx.moveTo(p.hx, p.hy - 13);
+        ctx.lineTo(p.hx, p.hy + 13);
+        ctx.stroke();
+      }
+      ctx.fillStyle = "#e7c27a";
+      for (let i = 0; i < list.length; i += 1) {
+        const p = list[i];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      return;
+    }
+    ctx.fillStyle = "rgba(56, 189, 248, 0.16)";
+    for (let i = 0; i < list.length; i += 1) {
+      ctx.beginPath();
+      ctx.arc(list[i].x, list[i].y, 9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = "#93ddfd";
+    for (let i = 0; i < list.length; i += 1) {
+      ctx.beginPath();
+      ctx.arc(list[i].x, list[i].y, 4.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawGraph() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(200, Math.floor(graph.clientWidth));
+    const h = Math.max(60, Math.floor(graph.clientHeight));
+    if (graph.width !== Math.floor(w * dpr) || graph.height !== Math.floor(h * dpr)) {
+      graph.width = Math.floor(w * dpr);
+      graph.height = Math.floor(h * dpr);
+    }
+    gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    gctx.fillStyle = "#fff";
+    gctx.fillRect(0, 0, w, h);
+    const padL = 48;
+    const padR = 78;
+    const padT = 30;
+    const padB = 40;
+    const pw = w - padL - padR;
+    const ph = h - padT - padB;
+    const labelStep = ph >= 120 ? 20 : 50;
+    function xOf(t) { return padL + (t / GRAPH_T) * pw; }
+    function yOf(v) { return padT + (1 - v / 100) * ph; }
+    gctx.font = "14px 'Yu Gothic', Meiryo, sans-serif";
+    gctx.lineWidth = 1;
+    for (let v = 0; v <= 100; v += 10) {
+      gctx.strokeStyle = v % labelStep === 0 ? "#d3deea" : "#eef3f8";
+      gctx.beginPath();
+      gctx.moveTo(padL, yOf(v));
+      gctx.lineTo(padL + pw, yOf(v));
+      gctx.stroke();
+    }
+    gctx.fillStyle = "#34465a";
+    gctx.textAlign = "right";
+    gctx.textBaseline = "middle";
+    for (let v = 0; v <= 100; v += labelStep) gctx.fillText(String(v), padL - 7, yOf(v));
+    gctx.textAlign = "center";
+    gctx.textBaseline = "top";
+    for (let t = 0; t <= GRAPH_T; t += 2) {
+      gctx.fillText(String(t), xOf(t), padT + ph + 5);
+    }
+    gctx.strokeStyle = "#1c2430";
+    gctx.lineWidth = 1.4;
+    gctx.beginPath();
+    gctx.moveTo(padL, padT);
+    gctx.lineTo(padL, padT + ph);
+    gctx.lineTo(padL + pw, padT + ph);
+    gctx.stroke();
+    gctx.fillStyle = "#1d4e89";
+    gctx.textAlign = "left";
+    gctx.textBaseline = "bottom";
+    gctx.fillText("温度（℃）", 6, padT - 11);
+    gctx.textAlign = "right";
+    gctx.textBaseline = "top";
+    gctx.fillText("時間（s）", padL + pw, padT + ph + 22);
+    function line(key, color) {
+      if (history.length < 1) return;
+      gctx.beginPath();
+      gctx.strokeStyle = color;
+      gctx.lineWidth = 3.5;
+      gctx.lineJoin = "round";
+      history.forEach(function (p, i) {
+        const x = xOf(Math.min(GRAPH_T, p.t));
+        const y = yOf(p[key]);
+        if (i === 0) gctx.moveTo(x, y);
+        else gctx.lineTo(x, y);
+      });
+      gctx.stroke();
+      const last = history[history.length - 1];
+      gctx.fillStyle = color;
+      gctx.beginPath();
+      gctx.arc(xOf(Math.min(GRAPH_T, last.t)), yOf(last[key]), 5, 0, Math.PI * 2);
+      gctx.fill();
+    }
+    line("a", "#ea580c");
+    line("b", "#0369a1");
+    if (phase === "done") {
+      const v = history[history.length - 1].a;
+      gctx.setLineDash([6, 5]);
+      gctx.strokeStyle = "#64748b";
+      gctx.lineWidth = 1.5;
+      gctx.beginPath();
+      gctx.moveTo(padL, yOf(v));
+      gctx.lineTo(padL + pw, yOf(v));
+      gctx.stroke();
+      gctx.setLineDash([]);
+      gctx.fillStyle = "#1c2430";
+      gctx.font = "bold 15px 'Yu Gothic', Meiryo, sans-serif";
+      gctx.textAlign = "left";
+      gctx.textBaseline = "middle";
+      gctx.fillText(v.toFixed(1) + " ℃", padL + pw + 6, yOf(v));
+    }
+  }
+
+  function startRun() {
+    const setup = SETUPS[setupId];
+    const gap = Math.abs(setup.a.t - setup.b.t);
+    tau = RUN_S / Math.log(gap / EQ_EPS);
+    phase = "run";
+    elapsed = 0;
+    contact.classList.add("on");
+    startBtn.disabled = true;
+    startBtn.textContent = "接触中";
+  }
+
+  function updateRun() {
+    const setup = SETUPS[setupId];
+    const end = finals(setup);
+    const k = Math.exp(-elapsed / tau);
+    shownA = end.teq + (setup.a.t - end.teq) * k;
+    shownB = end.teq + (setup.b.t - end.teq) * k;
+    const hot = setup.a.t >= setup.b.t ? setup.a : setup.b;
+    const hotNow = setup.a.t >= setup.b.t ? shownA : shownB;
+    const q = capacity(hot) * (hot.t - hotNow);
+    setText();
+    qLoss.textContent = q.toFixed(2) + " J";
+    qGain.textContent = q.toFixed(2) + " J";
+    const last = history[history.length - 1];
+    if (elapsed - last.t >= 0.08) history.push({ t: elapsed, a: shownA, b: shownB });
+    if (Math.abs(shownA - shownB) < EQ_EPS) finish();
+  }
+
+  function finish() {
+    const end = finals(SETUPS[setupId]);
+    phase = "done";
+    shownA = end.teq;
+    shownB = end.teq;
+    history.push({ t: elapsed, a: shownA, b: shownB });
+    setText();
+    qLoss.textContent = end.q.toFixed(2) + " J";
+    qGain.textContent = end.q.toFixed(2) + " J";
+    badge.hidden = false;
+    contact.classList.remove("on");
+    startBtn.disabled = true;
+    startBtn.textContent = "接触開始";
+  }
+
+  let lastTime = 0;
+  let stepBank = 0;
+  let loopOn = false;
+  const STEP_MS = 1000 / 60;
+
+  function frame(now) {
+    if (document.hidden) {
+      loopOn = false;
+      return;
+    }
+    if (!lastTime) lastTime = now;
+    let dt = now - lastTime;
+    lastTime = now;
+    if (dt > 80) dt = 80;
+    stepBank += dt;
+    let guard = 0;
+    const setup = SETUPS[setupId];
+    while (stepBank >= STEP_MS && guard < 3) {
+      if (phase === "run") {
+        elapsed += STEP_MS / 1000;
+        updateRun();
+      }
+      stepParts(partsA, sizeA, setup.a.mat, shownA);
+      stepParts(partsB, sizeB, setup.b.mat, shownB);
+      stepBank -= STEP_MS;
+      guard += 1;
+    }
+    drawParts(views.a, partsA, sizeA, setup.a.mat);
+    drawParts(views.b, partsB, sizeB, setup.b.mat);
+    if (phase === "run" || phase === "done") drawGraph();
+    requestAnimationFrame(frame);
+  }
+
+  function startLoop() {
+    if (loopOn || document.hidden) return;
+    loopOn = true;
+    lastTime = 0;
+    stepBank = 0;
+    requestAnimationFrame(frame);
+  }
+
+  function choose(id) {
+    setupId = id;
+    applyIdle();
+  }
+
+  setButtons[1].addEventListener("click", function () { choose(1); });
+  setButtons[2].addEventListener("click", function () { choose(2); });
+  setButtons[3].addEventListener("click", function () { choose(3); });
+  document.getElementById("resetBtn").addEventListener("click", function () { applyIdle(); });
+  startBtn.addEventListener("click", function () {
+    if (phase !== "idle") return;
+    startRun();
+  });
+
+  let resizeTimer = 0;
+  window.addEventListener("resize", function () {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(refreshParts, 120);
+  });
+  window.addEventListener("orientationchange", function () {
+    window.setTimeout(refreshParts, 150);
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) startLoop();
+  });
+  [views.a, views.b, graph].forEach(function (el) {
+    el.addEventListener("contextmenu", function (event) { event.preventDefault(); });
+  });
+
+  applyIdle();
+  loopOn = true;
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

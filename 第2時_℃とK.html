@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d4e89">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>第2時　℃とK</title>
+<style>
+  :root {
+    --blue: #1d4e89;
+    --ink: #1c2430;
+    --line: #c5ced8;
+    --paper: #f4f7fb;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    overscroll-behavior: none;
+    font-family: "Yu Gothic", "游ゴシック", Meiryo, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    padding:
+      env(safe-area-inset-top)
+      env(safe-area-inset-right)
+      env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+    -webkit-text-size-adjust: 100%;
+  }
+  header { padding: 10px 12px 2px; }
+  .kicker { margin: 0; color: var(--blue); font-weight: 700; font-size: 0.95rem; }
+  h1 { margin: 1px 0 4px; font-size: 1.25rem; }
+  .lead { margin: 0; line-height: 1.4; font-size: 0.95rem; }
+  .readout {
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px 2px;
+  }
+  .card {
+    flex: 1;
+    min-width: 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 12px;
+  }
+  .card .name { display: block; color: var(--blue); font-weight: 700; font-size: 0.95rem; }
+  .card .num {
+    display: block;
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 700;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px 2px;
+  }
+  button {
+    font-family: inherit;
+    font-size: 16px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    cursor: pointer;
+    flex: 1 1 120px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  button.active {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+  }
+  .slider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 2px 12px 8px;
+    font-size: 16px;
+    touch-action: pan-x;
+  }
+  .slider input {
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    margin: 0;
+    background: transparent;
+    touch-action: pan-x;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .slider input::-webkit-slider-runnable-track {
+    height: 8px;
+    background: #c5ced8;
+    border-radius: 999px;
+  }
+  .slider input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    margin-top: -10px;
+    border: 0;
+    border-radius: 50%;
+    background: #1d4e89;
+  }
+  .slider input::-moz-range-track {
+    height: 8px;
+    background: #c5ced8;
+    border: 0;
+    border-radius: 999px;
+  }
+  .slider input::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 50%;
+    background: #1d4e89;
+  }
+  .ends {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 12px 6px;
+    color: #5c6b7a;
+    font-size: 0.9rem;
+  }
+  .stage {
+    flex: 1;
+    min-height: 0;
+    margin: 0 12px 12px;
+    background: #0b1220;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .canvas-wrap { position: relative; flex: 1; min-height: 0; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .hud {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    color: #e8f0f8;
+    background: rgba(8, 16, 28, 0.72);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 1.05rem;
+    text-align: right;
+    line-height: 1.35;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 10px 14px 12px;
+    color: #dbe7f5;
+    background: #10192b;
+  }
+  .legend span { display: flex; align-items: center; gap: 8px; }
+  .legend span.off { opacity: 0.35; }
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    background: #38bdf8;
+  }
+  @media (max-height: 560px) {
+    .kicker, .lead, .ends { display: none; }
+    header { padding: 4px 10px 0; }
+    h1 { font-size: 1rem; margin: 0; }
+    .card { padding: 4px 8px; }
+    .card .num { font-size: 1.35rem; }
+    .readout, .controls { padding-top: 4px; }
+    .stage { margin-bottom: 6px; }
+    .legend { padding: 4px 10px; }
+  }
+  .readout .card:first-child { border-top: 4px solid #2b6cb0; }
+  .readout .card:last-child { border-top: 4px solid #7c3aed; }
+  .readout .card:last-child .num { color: #5b21b6; }
+  /* ===== 画面デザイン（全時間共通） ===== */
+  :root {
+    --blue: #1d4e89;
+    --blue-2: #2b6cb0;
+    --ink: #1c2430;
+    --muted: #5c6b7a;
+    --line: #d6dfe9;
+    --paper: #eef3f9;
+    --accent: #ea580c;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(16, 40, 80, 0.06), 0 6px 18px rgba(16, 40, 80, 0.08);
+  }
+  body { background: linear-gradient(180deg, #e6eef8 0%, #f4f7fb 280px); }
+  header {
+    margin: 0;
+    padding: 10px 16px 12px;
+    background: linear-gradient(120deg, #143a68 0%, #1d4e89 55%, #2b6cb0 100%);
+    color: #fff;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 14px;
+    align-items: center;
+    box-shadow: 0 2px 12px rgba(16, 40, 80, 0.2);
+  }
+  header .kicker {
+    grid-row: 1 / 3;
+    margin: 0;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  header h1 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.25rem, 2.4vw, 1.65rem);
+    letter-spacing: 0.04em;
+    line-height: 1.25;
+  }
+  header .lead {
+    margin: 3px 0 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: clamp(0.9rem, 1.5vw, 1rem);
+    line-height: 1.45;
+  }
+
+  .controls { padding: 10px 12px 0; gap: 10px; }
+  .group {
+    flex: 1 1 340px;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .group.narrow { flex: 1 1 220px; }
+  .glabel {
+    flex: 0 0 auto;
+    padding: 0 6px 0 8px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .group button { flex: 1 1 0; min-width: 0; box-shadow: none; }
+
+  button {
+    font-size: 17px;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(16, 40, 80, 0.08);
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s, transform 0.08s;
+  }
+  button:hover:not(:disabled) { border-color: #9fb6d0; }
+  button:active:not(:disabled) { transform: translateY(1px) scale(0.985); }
+  button:focus-visible { outline: 3px solid rgba(43, 108, 176, 0.45); outline-offset: 2px; }
+  button.active {
+    background: linear-gradient(180deg, #2b6cb0, #1d4e89);
+    border-color: #1d4e89;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(29, 78, 137, 0.35);
+  }
+  button.primary {
+    background: linear-gradient(180deg, #fb8a3c, #ea580c);
+    border-color: #d9530a;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
+  }
+  button.primary:hover:not(:disabled) { border-color: #c2410c; }
+  button.ghost { background: #f4f7fb; color: var(--muted); box-shadow: none; }
+  button:disabled { opacity: 0.45; cursor: default; }
+
+  button.toggle {
+    position: relative;
+    padding-left: 60px;
+    text-align: left;
+  }
+  button.toggle::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    width: 38px;
+    height: 22px;
+    margin-top: -11px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    transition: background 0.15s;
+  }
+  button.toggle::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    margin-top: -9px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: left 0.15s;
+  }
+  button.toggle.active {
+    background: #fff;
+    color: var(--ink);
+    border-color: #86b7e8;
+    box-shadow: none;
+  }
+  button.toggle.active::before { background: #22c55e; }
+  button.toggle.active::after { left: 30px; }
+
+  .slider {
+    width: auto;
+    margin: 10px 12px 0;
+    padding: 2px 8px 2px 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .sliders { padding: 10px 12px 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; }
+  .sliders .slider { margin: 0; }
+  .slider input::-webkit-slider-runnable-track {
+    height: 10px;
+    background: linear-gradient(90deg, #bcd3ea, #1d4e89);
+    border-radius: 999px;
+  }
+  .slider input::-moz-range-track {
+    height: 10px;
+    background: linear-gradient(90deg, #bcd3ea, #1d4e89);
+    border-radius: 999px;
+  }
+  .slider input.hot::-webkit-slider-runnable-track { background: linear-gradient(90deg, #38bdf8, #a78bfa 50%, #f87171); }
+  .slider input.hot::-moz-range-track { background: linear-gradient(90deg, #38bdf8, #a78bfa 50%, #f87171); }
+  .slider input::-webkit-slider-thumb {
+    width: 30px;
+    height: 30px;
+    margin-top: -10px;
+    background: #fff;
+    border: 3px solid #1d4e89;
+    box-shadow: 0 2px 6px rgba(16, 40, 80, 0.3);
+  }
+  .slider input::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: #fff;
+    border: 3px solid #1d4e89;
+    box-shadow: 0 2px 6px rgba(16, 40, 80, 0.3);
+  }
+  .slider .read, .read {
+    min-width: 5.6em;
+    padding: 6px 10px;
+    text-align: center;
+    color: var(--blue);
+    background: #f1f6fc;
+    border-radius: 10px;
+    font-size: 17px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .ends { padding: 4px 18px 0; }
+
+  .stage, .card, .chip, .table-wrap, .result, .heat, .graph, .obj {
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .stage { border: 1px solid rgba(15, 30, 60, 0.12); }
+  body > .stage { margin-top: 10px; }
+  .card, .chip, .table-wrap, .result, .heat, .graph { border-color: var(--line); }
+  .card .name, .graph-title, .graph .title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--blue);
+    font-weight: 700;
+  }
+  .card .name::before, .graph-title::before, .graph .title::before {
+    content: "";
+    width: 4px;
+    height: 1em;
+    border-radius: 2px;
+    background: var(--blue-2);
+  }
+  .chip { font-weight: 600; }
+  .chip.now {
+    font-size: 1.15rem;
+    color: var(--blue);
+    background: linear-gradient(180deg, #fff, #eef5fd);
+    border-color: #a9c6e6;
+  }
+  table { font-variant-numeric: tabular-nums; }
+  th { background: #eaf1f9; color: var(--blue); font-size: 0.9rem; letter-spacing: 0.02em; }
+  tbody tr:nth-child(even) td { background: #f8fafd; }
+
+  .hud {
+    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    font-weight: 700;
+    color: #f1f7ff;
+    background: rgba(10, 20, 36, 0.62);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(158, 197, 232, 0.28);
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .legend {
+    background: #0f1a2e;
+    border-top: 1px solid rgba(158, 197, 232, 0.14);
+    gap: 10px;
+    font-size: 0.95rem;
+  }
+  .legend span {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  @media (max-width: 600px) {
+    header { grid-template-columns: 1fr; padding: 8px 12px 10px; }
+    header .kicker { grid-row: auto; justify-self: start; padding: 3px 10px; margin-bottom: 4px; }
+    .glabel { display: none; }
+  }
+  @media (max-height: 560px) {
+    header { padding: 6px 12px; }
+    header h1 { font-size: 1.05rem; }
+    .controls { padding-top: 6px; }
+    .slider { margin-top: 6px; }
+    body > .stage { margin-top: 6px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <p class="kicker">物理基礎　熱　第2時</p>
+  <h1>℃ と K</h1>
+  <p class="lead">水の分子の動きを見て、セルシウス温度と絶対温度を読みます。</p>
+</header>
+<div class="readout">
+  <div class="card">
+    <span class="name">セルシウス温度</span>
+    <span class="num" id="celsiusRead">0.0 ℃</span>
+  </div>
+  <div class="card">
+    <span class="name">絶対温度</span>
+    <span class="num" id="kelvinRead">273.15 K</span>
+  </div>
+</div>
+<div class="controls">
+  <div class="group">
+    <span class="glabel">温度</span>
+    <button type="button" class="temp active" data-c="0">0 ℃</button>
+    <button type="button" class="temp" data-c="100">100 ℃</button>
+    <button type="button" class="temp" data-c="-50">−50 ℃</button>
+  </div>
+  <div class="group narrow">
+    <span class="glabel">表示</span>
+    <button type="button" id="molBtn" class="toggle active">水の分子　オン</button>
+  </div>
+</div>
+<label class="slider">温度
+  <input id="tempSlider" class="hot" type="range" min="-50" max="200" step="1" value="0" aria-label="セルシウス温度">
+  <span class="read" id="sliderRead">0.0 ℃</span>
+</label>
+<div class="ends"><span>−50 ℃</span><span>200 ℃</span></div>
+<div class="stage">
+  <div class="canvas-wrap">
+    <div class="hud" id="hud">0.0 ℃<br>273.15 K</div>
+    <canvas id="view" aria-label="水の分子の運動"></canvas>
+  </div>
+  <div class="legend">
+    <span id="legendMol"><i class="dot"></i>水の分子</span>
+  </div>
+</div>
+<script>
+(function () {
+  const canvas = document.getElementById("view");
+  const ctx = canvas.getContext("2d");
+  const celsiusRead = document.getElementById("celsiusRead");
+  const kelvinRead = document.getElementById("kelvinRead");
+  const sliderRead = document.getElementById("sliderRead");
+  const hud = document.getElementById("hud");
+  const tempSlider = document.getElementById("tempSlider");
+  const molBtn = document.getElementById("molBtn");
+  const legendMol = document.getElementById("legendMol");
+  const tempButtons = Array.from(document.querySelectorAll(".temp"));
+
+  const MOL_R = 5.2;
+  const K_OFFSET = 273.15;
+
+  let width = 0;
+  let height = 0;
+  let celsius = 0;
+  let showMols = true;
+  let mols = [];
+
+  function kelvinOf(c) {
+    return c + K_OFFSET;
+  }
+
+  function molSpeed(c) {
+    return 0.42 * Math.sqrt(kelvinOf(c));
+  }
+
+  function molCount() {
+    return Math.max(40, Math.min(80, Math.round(width * height / 12000)));
+  }
+
+  function fmtC(c) {
+    const body = Math.abs(c).toFixed(1);
+    return (c < 0 ? "−" : "") + body + " ℃";
+  }
+
+  function fmtK(c) {
+    return kelvinOf(c).toFixed(2) + " K";
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const nextW = Math.max(240, Math.floor(canvas.clientWidth));
+    const nextH = Math.max(140, Math.floor(canvas.clientHeight));
+    if (nextW === width && nextH === height) return false;
+    width = nextW;
+    height = nextH;
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return true;
+  }
+
+  function thermoW() {
+    return width < 480 ? 74 : 96;
+  }
+
+  function makeMol() {
+    const speed = molSpeed(celsius);
+    const angle = Math.random() * Math.PI * 2;
+    const left = thermoW() + MOL_R;
+    return {
+      x: left + Math.random() * (width - left - MOL_R),
+      y: MOL_R + Math.random() * (height - MOL_R * 2),
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed
+    };
+  }
+
+  function setMolSpeed(mol) {
+    const speed = molSpeed(celsius);
+    const angle = Math.atan2(mol.vy, mol.vx);
+    mol.vx = Math.cos(angle) * speed;
+    mol.vy = Math.sin(angle) * speed;
+  }
+
+  function init() {
+    resize();
+    mols = [];
+    const n = molCount();
+    for (let i = 0; i < n; i += 1) mols.push(makeMol());
+  }
+
+  function bounce(mol) {
+    const left = thermoW() + MOL_R;
+    if (mol.x < left) { mol.x = left; mol.vx = Math.abs(mol.vx); }
+    else if (mol.x > width - MOL_R) { mol.x = width - MOL_R; mol.vx = -Math.abs(mol.vx); }
+    if (mol.y < MOL_R) { mol.y = MOL_R; mol.vy = Math.abs(mol.vy); }
+    else if (mol.y > height - MOL_R) { mol.y = height - MOL_R; mol.vy = -Math.abs(mol.vy); }
+  }
+
+  function step() {
+    for (let i = 0; i < mols.length; i += 1) {
+      const mol = mols[i];
+      mol.x += mol.vx;
+      mol.y += mol.vy;
+      bounce(mol);
+    }
+  }
+
+  function liquidColor(c) {
+    const u = Math.max(0, Math.min(1, (c + 50) / 250));
+    const r = Math.round(56 + (239 - 56) * u);
+    const g = Math.round(189 + (68 - 189) * u);
+    const b = Math.round(248 + (68 - 248) * u);
+    return "rgb(" + r + "," + g + "," + b + ")";
+  }
+
+  /* ℃の目盛りだけを付ける。K との対応は上の2枚の表示で読む */
+  function drawThermometer() {
+    const tw = thermoW();
+    ctx.fillStyle = "#0f1a2e";
+    ctx.fillRect(0, 0, tw, height);
+    ctx.strokeStyle = "rgba(158, 197, 232, 0.25)";
+    ctx.beginPath();
+    ctx.moveTo(tw + 0.5, 0);
+    ctx.lineTo(tw + 0.5, height);
+    ctx.stroke();
+
+    const cx = tw * 0.36;
+    const top = 22;
+    const bulbR = Math.min(15, tw * 0.17);
+    const bottom = height - 18 - bulbR * 2;
+    const tubeW = bulbR * 0.85;
+    function yOf(c) { return bottom - ((c + 50) / 250) * (bottom - top); }
+
+    ctx.fillStyle = "#1e2b44";
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(cx - tubeW / 2 - 3, top - 8, tubeW + 6, bottom - top + 16, tubeW);
+    else ctx.rect(cx - tubeW / 2 - 3, top - 8, tubeW + 6, bottom - top + 16);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, bottom + bulbR, bulbR + 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    const color = liquidColor(celsius);
+    ctx.fillStyle = color;
+    const yLevel = yOf(celsius);
+    ctx.fillRect(cx - tubeW / 2, yLevel, tubeW, bottom - yLevel + bulbR);
+    ctx.beginPath();
+    ctx.arc(cx, bottom + bulbR, bulbR, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = "12px 'Yu Gothic', Meiryo, sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    for (let c = -50; c <= 200; c += 50) {
+      const y = yOf(c);
+      ctx.strokeStyle = "rgba(232, 240, 248, 0.7)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx + tubeW / 2 + 3, y);
+      ctx.lineTo(cx + tubeW / 2 + 9, y);
+      ctx.stroke();
+      ctx.fillStyle = "#cbd8e6";
+      ctx.fillText((c < 0 ? "−" + Math.abs(c) : String(c)), cx + tubeW / 2 + 12, y);
+    }
+  }
+
+  function draw() {
+    const bg = ctx.createLinearGradient(0, 0, 0, height);
+    bg.addColorStop(0, "#0d1729");
+    bg.addColorStop(1, "#060c18");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, width, height);
+    drawThermometer();
+    if (!showMols) return;
+    ctx.fillStyle = "rgba(56, 189, 248, 0.16)";
+    for (let i = 0; i < mols.length; i += 1) {
+      const mol = mols[i];
+      ctx.beginPath();
+      ctx.arc(mol.x, mol.y, MOL_R * 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = "#93ddfd";
+    for (let i = 0; i < mols.length; i += 1) {
+      const mol = mols[i];
+      ctx.beginPath();
+      ctx.arc(mol.x, mol.y, MOL_R, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  let lastTime = 0;
+  let stepBank = 0;
+  let loopOn = false;
+  const STEP_MS = 1000 / 60;
+
+  function frame(now) {
+    if (document.hidden) {
+      loopOn = false;
+      return;
+    }
+    if (!lastTime) lastTime = now;
+    let dt = now - lastTime;
+    lastTime = now;
+    if (dt > 80) dt = 80;
+    stepBank += dt;
+    let guard = 0;
+    while (stepBank >= STEP_MS && guard < 3) {
+      step();
+      stepBank -= STEP_MS;
+      guard += 1;
+    }
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  function startLoop() {
+    if (loopOn || document.hidden) return;
+    loopOn = true;
+    lastTime = 0;
+    stepBank = 0;
+    requestAnimationFrame(frame);
+  }
+
+  function setCelsius(c) {
+    celsius = Math.max(-50, Math.min(200, Math.round(c)));
+    tempSlider.value = String(celsius);
+    const cText = fmtC(celsius);
+    const kText = fmtK(celsius);
+    celsiusRead.textContent = cText;
+    kelvinRead.textContent = kText;
+    sliderRead.textContent = cText;
+    hud.innerHTML = cText + "<br>" + kText;
+    tempButtons.forEach(function (btn) {
+      btn.classList.toggle("active", Number(btn.dataset.c) === celsius);
+    });
+    mols.forEach(setMolSpeed);
+  }
+
+  tempButtons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      setCelsius(Number(btn.dataset.c));
+    });
+  });
+
+  tempSlider.addEventListener("input", function () {
+    setCelsius(Number(tempSlider.value));
+  });
+
+  molBtn.addEventListener("click", function () {
+    showMols = !showMols;
+    molBtn.textContent = showMols ? "水の分子　オン" : "水の分子　オフ";
+    molBtn.classList.toggle("active", showMols);
+    legendMol.classList.toggle("off", !showMols);
+  });
+
+  let resizeTimer = 0;
+  function onViewportChange() {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(function () {
+      const oldW = width;
+      const oldH = height;
+      if (!resize()) return;
+      if (Math.abs(oldW - width) > 60 || Math.abs(oldH - height) > 80) init();
+    }, 120);
+  }
+
+  window.addEventListener("resize", onViewportChange);
+  window.addEventListener("orientationchange", onViewportChange);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", onViewportChange);
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) startLoop();
+  });
+  canvas.addEventListener("contextmenu", function (event) {
+    event.preventDefault();
+  });
+
+  init();
+  setCelsius(0);
+  draw();
+  loopOn = true;
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f7fb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>第6時　熱量の計算</title>
+<style>
+  :root {
+    --blue: #1d4e89;
+    --ink: #1c2430;
+    --line: #c5ced8;
+    --paper: #f4f7fb;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    overscroll-behavior: none;
+    font-family: "Yu Gothic", "游ゴシック", Meiryo, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    padding:
+      env(safe-area-inset-top)
+      env(safe-area-inset-right)
+      env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+    -webkit-text-size-adjust: 100%;
+  }
+  header { padding: 8px 12px 0; }
+  .kicker { margin: 0; color: var(--blue); font-weight: 700; font-size: 0.95rem; }
+  h1 { margin: 1px 0 2px; font-size: 1.25rem; }
+  .lead { margin: 0; line-height: 1.4; font-size: 0.95rem; }
+  .units, .controls, .sliders {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px 0;
+  }
+  .unit, button, .slider {
+    font-family: inherit;
+    font-size: 16px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    border-radius: 8px;
+    min-height: 44px;
+  }
+  .unit { padding: 8px 12px; display: flex; align-items: center; }
+  button {
+    padding: 8px 14px;
+    cursor: pointer;
+    flex: 1 1 96px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  button.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .slider { flex: 1 1 220px; display: flex; align-items: center; gap: 8px; padding: 4px 12px; touch-action: pan-x; }
+  .slider input {
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    margin: 0;
+    background: transparent;
+    accent-color: #1d4e89;
+  }
+  .slider strong { min-width: 4.5em; color: var(--blue); font-variant-numeric: tabular-nums; }
+  .main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    gap: 10px;
+    padding: 8px 12px 12px;
+  }
+  .formula {
+    flex: 0.9;
+    min-width: 240px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .formula p { margin: 0; line-height: 1.45; }
+  .eq { font-size: clamp(1.15rem, 2.4vw, 1.7rem); font-weight: 700; color: var(--blue); font-variant-numeric: tabular-nums; }
+  .temps { font-size: 1.15rem; font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid var(--line); padding: 6px; text-align: center; }
+  th { background: #e8f0f8; color: var(--blue); }
+  td.hot { font-weight: 700; color: var(--blue); }
+  .stage {
+    flex: 1.2;
+    min-width: 0;
+    min-height: 120px;
+    background: #0b1220;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .hud {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: #e8f0f8;
+    background: rgba(8, 16, 28, 0.72);
+    border-radius: 8px;
+    padding: 8px 12px;
+    line-height: 1.4;
+  }
+  @media (max-width: 800px) {
+    .main { flex-direction: column; }
+    .formula { min-width: 0; }
+    .stage { min-height: 180px; }
+  }
+  @media (max-height: 560px) {
+    .kicker, .lead, .units { display: none; }
+    h1 { font-size: 1rem; margin: 0; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <p class="kicker">物理基礎　熱　第6時</p>
+  <h1>熱量の計算</h1>
+  <p class="lead">仕事も熱も、単位は J です。熱量は Q＝mcΔt で求めます。プリントの計算中は、この画面を閉じます。</p>
+</header>
+<div class="units">
+  <div class="unit">仕事の単位は J</div>
+  <div class="unit">熱の単位は J</div>
+</div>
+<div class="controls">
+  <button type="button" id="waterBtn" class="active">水</button>
+  <button type="button" id="ironBtn">鉄</button>
+  <button type="button" id="alBtn">アルミ</button>
+</div>
+<div class="sliders">
+  <label class="slider">質量
+    <input id="massSlider" type="range" min="50" max="400" step="10" value="80" aria-label="質量">
+    <strong id="massRead">80 g</strong>
+  </label>
+  <label class="slider">温度上昇
+    <input id="dtSlider" type="range" min="1" max="20" step="1" value="6" aria-label="温度上昇">
+    <strong id="dtRead">6 ℃</strong>
+  </label>
+</div>
+<div class="main">
+  <section class="formula">
+    <p>Q＝mcΔt</p>
+    <p id="cLine">c＝4.2 J/(g·K)</p>
+    <p class="eq" id="eqLine">Q＝80×4.2×6＝2016 J</p>
+    <p class="temps" id="tempLine">20.0 ℃ → 26.0 ℃</p>
+    <table>
+      <thead>
+        <tr><th></th><th>水</th><th>鉄</th><th>アルミ</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>c</th>
+          <td>4.2</td>
+          <td>0.45</td>
+          <td>0.90</td>
+        </tr>
+        <tr>
+          <th>Q（J）</th>
+          <td id="qWater" class="hot">2016</td>
+          <td id="qIron">216</td>
+          <td id="qAl">432</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>c の単位は J/(g·K)。Δt は上がった温度（℃）で計算してよい。</p>
+  </section>
+  <div class="stage">
+    <div class="hud" id="hud">水<br>20.0 ℃</div>
+    <canvas id="view" aria-label="温度が上がる様子"></canvas>
+  </div>
+</div>
+<script>
+(function () {
+  const MATERIALS = {
+    water: { name: "水", c: 42 / 10, cText: "4.2", color: "#7dd3fc" },
+    iron: { name: "鉄", c: 45 / 100, cText: "0.45", color: "#e7c27a" },
+    al: { name: "アルミ", c: 90 / 100, cText: "0.90", color: "#d6dde6" }
+  };
+  const START = 20;
+  const buttons = {
+    water: document.getElementById("waterBtn"),
+    iron: document.getElementById("ironBtn"),
+    al: document.getElementById("alBtn")
+  };
+  const massSlider = document.getElementById("massSlider");
+  const dtSlider = document.getElementById("dtSlider");
+  const massRead = document.getElementById("massRead");
+  const dtRead = document.getElementById("dtRead");
+  const cLine = document.getElementById("cLine");
+  const eqLine = document.getElementById("eqLine");
+  const tempLine = document.getElementById("tempLine");
+  const qCells = {
+    water: document.getElementById("qWater"),
+    iron: document.getElementById("qIron"),
+    al: document.getElementById("qAl")
+  };
+  const hud = document.getElementById("hud");
+  const canvas = document.getElementById("view");
+  const ctx = canvas.getContext("2d");
+
+  let material = "water";
+  let mass = 80;
+  let dt = 6;
+  let width = 0;
+  let height = 0;
+  let mols = [];
+  let weightY = 0;
+
+  function heatOf(key) {
+    return mass * MATERIALS[key].c * dt;
+  }
+
+  function fmtQ(q) {
+    const nearest = Math.round(q);
+    if (Math.abs(q - nearest) < 1e-6) return String(nearest);
+    return q.toFixed(1);
+  }
+
+  function fmtT(v) {
+    return v.toFixed(1);
+  }
+
+  function paintText() {
+    const mat = MATERIALS[material];
+    const end = START + dt;
+    massRead.textContent = mass + " g";
+    dtRead.textContent = dt + " ℃";
+    cLine.textContent = "c＝" + mat.cText + " J/(g·K)";
+    eqLine.textContent = "Q＝" + mass + "×" + mat.cText + "×" + dt + "＝" + fmtQ(heatOf(material)) + " J";
+    tempLine.textContent = fmtT(START) + " ℃ → " + fmtT(end) + " ℃";
+    hud.innerHTML = mat.name + "<br>" + fmtT(end) + " ℃";
+    Object.keys(qCells).forEach(function (key) {
+      qCells[key].textContent = fmtQ(heatOf(key));
+      qCells[key].classList.toggle("hot", key === material);
+    });
+    Object.keys(buttons).forEach(function (key) {
+      buttons[key].classList.toggle("active", key === material);
+    });
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(160, Math.floor(canvas.clientWidth));
+    const h = Math.max(120, Math.floor(canvas.clientHeight));
+    if (w === width && h === height) return;
+    width = w;
+    height = h;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    mols = [];
+    const n = Math.max(18, Math.min(42, Math.round(w * h / 9000)));
+    const speed = 0.35 * Math.sqrt((START + dt) + 273.15);
+    for (let i = 0; i < n; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      mols.push({
+        x: w * 0.42 + Math.random() * w * 0.5,
+        y: h * 0.28 + Math.random() * h * 0.58,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed
+      });
+    }
+  }
+
+  function stepMols() {
+    const left = width * 0.4;
+    const right = width * 0.94;
+    const top = height * 0.26;
+    const bottom = height * 0.9;
+    const speed = 0.28 * Math.sqrt((START + dt) + 273.15);
+    for (let i = 0; i < mols.length; i += 1) {
+      const mol = mols[i];
+      const angle = Math.atan2(mol.vy, mol.vx);
+      mol.vx = Math.cos(angle) * speed;
+      mol.vy = Math.sin(angle) * speed;
+      mol.x += mol.vx;
+      mol.y += mol.vy;
+      if (mol.x < left) { mol.x = left; mol.vx = Math.abs(mol.vx); }
+      else if (mol.x > right) { mol.x = right; mol.vx = -Math.abs(mol.vx); }
+      if (mol.y < top) { mol.y = top; mol.vy = Math.abs(mol.vy); }
+      else if (mol.y > bottom) { mol.y = bottom; mol.vy = -Math.abs(mol.vy); }
+    }
+  }
+
+  function draw() {
+    ctx.fillStyle = "#0b1220";
+    ctx.fillRect(0, 0, width, height);
+    const ground = height * 0.9;
+    ctx.strokeStyle = "#9ec5e8";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(width * 0.16, height * 0.12);
+    ctx.lineTo(width * 0.16, ground);
+    ctx.stroke();
+    const drop = (Math.sin(weightY) + 1) / 2;
+    const wy = height * 0.18 + drop * height * 0.42;
+    ctx.beginPath();
+    ctx.moveTo(width * 0.16, height * 0.12);
+    ctx.lineTo(width * 0.16, wy);
+    ctx.stroke();
+    ctx.fillStyle = "#e7c27a";
+    ctx.fillRect(width * 0.1, wy, width * 0.12, height * 0.1);
+    ctx.fillStyle = "rgba(125, 211, 252, 0.16)";
+    ctx.fillRect(width * 0.38, height * 0.24, width * 0.56, height * 0.66);
+    ctx.strokeStyle = "#7dd3fc";
+    ctx.strokeRect(width * 0.38, height * 0.24, width * 0.56, height * 0.66);
+    ctx.fillStyle = MATERIALS[material].color;
+    for (let i = 0; i < mols.length; i += 1) {
+      const mol = mols[i];
+      ctx.beginPath();
+      ctx.arc(mol.x, mol.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = "#e8f0f8";
+    ctx.font = "14px 'Yu Gothic', Meiryo, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("仕事", width * 0.08, height * 0.1);
+  }
+
+  let last = 0;
+  let loopOn = false;
+  function frame(now) {
+    if (document.hidden) {
+      loopOn = false;
+      return;
+    }
+    if (!last) last = now;
+    const dtMs = Math.min(80, now - last);
+    last = now;
+    weightY += dtMs * 0.0012;
+    stepMols();
+    draw();
+    requestAnimationFrame(frame);
+  }
+  function startLoop() {
+    if (loopOn || document.hidden) return;
+    loopOn = true;
+    last = 0;
+    requestAnimationFrame(frame);
+  }
+
+  function readControls() {
+    mass = Number(massSlider.value);
+    dt = Number(dtSlider.value);
+    paintText();
+  }
+
+  Object.keys(buttons).forEach(function (key) {
+    buttons[key].addEventListener("click", function () {
+      material = key;
+      paintText();
+    });
+  });
+  massSlider.addEventListener("input", readControls);
+  dtSlider.addEventListener("input", readControls);
+
+  let resizeTimer = 0;
+  window.addEventListener("resize", function () {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(resize, 80);
+  });
+  window.addEventListener("orientationchange", function () { window.setTimeout(resize, 120); });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) startLoop(); });
+  canvas.addEventListener("contextmenu", function (event) { event.preventDefault(); });
+
+  resize();
+  paintText();
+  loopOn = true;
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
